@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  allowedDevOrigins: ["welcome-primate-specially.ngrok-free.app", "pinv.app"],
 };
 
 export default nextConfig;

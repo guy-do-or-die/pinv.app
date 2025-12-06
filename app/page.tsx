@@ -1,5 +1,48 @@
 import Image from "next/image";
 
+import { Metadata } from 'next';
+import { NEXT_PUBLIC_APP_URL } from '@/lib/config';
+
+export const metadata: Metadata = {
+  title: 'PinV - Pinned Casts Dynamic View',
+  description: 'Share your pinned casts with style.',
+  openGraph: {
+    title: 'PinV',
+    description: 'Share your pinned casts with style.',
+    images: [`${NEXT_PUBLIC_APP_URL}/icon.png`],
+  },
+  other: {
+    'fc:miniapp': JSON.stringify({
+      version: '1',
+      imageUrl: `${NEXT_PUBLIC_APP_URL}/icon.png`,
+      button: {
+        title: 'Launch PinV',
+        action: {
+          type: 'launch_miniapp',
+          name: 'PinV',
+          url: NEXT_PUBLIC_APP_URL,
+          splashImageUrl: `${NEXT_PUBLIC_APP_URL}/icon.png`,
+          splashBackgroundColor: '#ffffff',
+        },
+      },
+    }),
+    'fc:frame': JSON.stringify({
+      version: '1',
+      imageUrl: `${NEXT_PUBLIC_APP_URL}/icon.png`,
+      button: {
+        title: 'Launch PinV',
+        action: {
+          type: 'launch_frame',
+          name: 'PinV',
+          url: NEXT_PUBLIC_APP_URL,
+          splashImageUrl: `${NEXT_PUBLIC_APP_URL}/icon.png`,
+          splashBackgroundColor: '#ffffff',
+        },
+      },
+    }),
+  },
+};
+
 export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white">

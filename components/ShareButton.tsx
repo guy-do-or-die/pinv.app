@@ -7,6 +7,9 @@ interface ShareButtonProps {
     url: string;
 }
 
+import { Button } from "@/components/ui/button";
+import { Share2 } from "lucide-react";
+
 export default function ShareButton({ url }: ShareButtonProps) {
     const handleShare = useCallback(async () => {
         try {
@@ -24,11 +27,12 @@ export default function ShareButton({ url }: ShareButtonProps) {
     }, [url]);
 
     return (
-        <button
+        <Button
             onClick={handleShare}
-            className="px-6 py-3 bg-white text-black font-bold rounded-lg shadow-lg hover:scale-105 transition-transform active:scale-95"
+            className="flex-1 bg-white text-black hover:bg-white/90 font-bold"
         >
+            <Share2 className="w-4 h-4 mr-2" />
             Share my PinV
-        </button>
+        </Button>
     );
 }

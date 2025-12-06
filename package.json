@@ -11,10 +11,17 @@
   "dependencies": {
     "@coinbase/onchainkit": "^1.1.2",
     "@farcaster/miniapp-sdk": "^0.2.1",
+    "@farcaster/miniapp-wagmi-connector": "^1.1.0",
+    "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.90.11",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.556.0",
     "next": "16.0.7",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
     "viem": "^2.40.3",
     "wagmi": "^2.19.5"
   },
