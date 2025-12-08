@@ -16,7 +16,7 @@ export default function Hero({ isLoading = false }: HeroProps) {
             </h1>
 
             <p className="text-lg md:text-2xl text-muted-foreground max-w-[700px] leading-relaxed font-sans font-medium">
-                Earn from dynamic content on{" "}
+                Earn from dynamic content <br /> on{" "}
                 <Link
                     href="https://farcaster.xyz"
                     className="text-foreground hover:text-primary transition-colors underline decoration-primary/50 underline-offset-4"
