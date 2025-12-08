@@ -15,7 +15,7 @@ export default function Header() {
                 <Link href="/" className="flex items-center gap-2 cursor-pointer group">
                     <img src="/icon.svg" alt="PinV Logo" className="w-10 h-10" />
                     <span className="text-xl md:text-2xl font-bold font-orbitron tracking-widest group-hover:text-primary transition-colors">
-                        PinV <span className="text-muted-foreground">ᵝ</span>
+                        PinV <span className="text-muted-foreground">ᵅ</span>
                     </span>
                 </Link>
 

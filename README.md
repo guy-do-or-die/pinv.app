@@ -1,4 +1,4 @@
-# PinV ᵝ [WIP]
+# PinV ᵅ [WIP]
 
 **PinV** turns dynamic, AI-generated widgets into tradable, ownable assets (ERC1155 tokens) on Farcaster. It creates a new economy for interactive content, allowing users to "pin" live applications—showing real-time data like weather, markets, or social feeds—directly to their profiles.
 
