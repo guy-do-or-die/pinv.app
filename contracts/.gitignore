@@ -1,0 +1,13 @@
+# Foundry
+cache/
+out/
+broadcast/
+
+# Environment variables
+.env
+
+# Dependencies
+lib/
+
+# OS specific
+.DS_Store
