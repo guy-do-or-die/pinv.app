@@ -10,3 +10,9 @@ build
 contracts/cache
 contracts/out
 contracts/lib
+
+# Lit
+lit
+
+# Local
+local
