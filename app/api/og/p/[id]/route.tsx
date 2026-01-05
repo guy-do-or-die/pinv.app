@@ -35,7 +35,7 @@ export async function GET(
     if (pin.widget && pin.widget.uiCode) {
 
         // PROXY TO OG ENGINE (If Configured)
-        const ogEngineUrl = process.env.OG_ENGINE_URL;
+        const ogEngineUrl = process.env.NEXT_PUBLIC_OG_ENGINE_URL;
         if (ogEngineUrl) {
             try {
                 // Construct Proxy URL
