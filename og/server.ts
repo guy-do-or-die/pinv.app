@@ -283,7 +283,8 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
         const height = 800;
 
         const workerCmd = path.join(__dirname, 'worker.js');
-        const child = spawn('node', [workerCmd], {
+        // Use 'bun' instead of 'node' since we are in a Bun runtime
+        const child = spawn('bun', [workerCmd], {
             stdio: ['pipe', 'pipe', 'pipe']
         });
 
@@ -306,7 +307,9 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
         });
 
         if (exitCode !== 0) {
-            throw new Error('Worker failed or timed out');
+            const errorOutput = Buffer.concat(errChunks).toString();
+            console.error('[Worker Error]', errorOutput);
+            throw new Error(`Worker failed or timed out: ${errorOutput}`);
         }
 
         const pngBuffer = Buffer.concat(chunks);
