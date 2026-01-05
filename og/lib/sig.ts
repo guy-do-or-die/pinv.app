@@ -1,7 +1,7 @@
-import { createPublicClient, http, verifyTypedData, Hex, getAddress, keccak256, toBytes } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
+import { Hex, keccak256, toBytes } from 'viem';
 import { pinVConfig } from './contracts';
-import { Bundle, computeParamsHash } from '@/lib/og-common';
+
+import { Bundle, computeParamsHash } from '../../lib/og-common';
 
 const SIGNED_TS_MAX_AGE_SEC = parseInt(process.env.SIGNED_TS_MAX_AGE_SEC || '86400');
 const SIGNED_TS_FUTURE_SKEW_SEC = parseInt(process.env.SIGNED_TS_FUTURE_SKEW_SEC || '600');

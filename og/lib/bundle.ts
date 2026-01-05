@@ -1,4 +1,4 @@
-import { canonicalizeParams, NormalizedParams, Bundle } from '@/lib/og-common';
+import { canonicalizeParams, NormalizedParams, Bundle } from '../../lib/og-common';
 
 // Bundle is now imported from params (which exports * from og-common)
 

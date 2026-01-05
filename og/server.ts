@@ -34,7 +34,7 @@ import { parseBundle } from './lib/bundle';
 import { verifySignature } from './lib/sig';
 import { checkOwnership } from './lib/chain';
 import { getManifest } from './lib/manifest';
-import { computeParamsHash } from '@/lib/og-common';
+import { computeParamsHash } from '../lib/og-common';
 
 import { executeLitAction } from './lib/executor';
 
@@ -130,6 +130,7 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
                 }
 
                 if (isOwner) {
+                    server.log.info(`[Auth] Bundle authorized for pin ${pinId} by ${signer}`);
                     authorizedBundle = bundle;
                     cacheVer = bundle.ver || 'latest';
                     cacheTs = bundle.ts ? String(bundle.ts) : '';

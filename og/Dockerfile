@@ -32,10 +32,8 @@ WORKDIR /app
 
 # Copy built artifacts and necessary files
 COPY --from=builder /app/og/dist ./dist
-COPY --from=builder /app/og/dist/lib ./lib
 COPY --from=builder /app/og/worker.js ./dist/og/worker.js
 COPY --from=builder /app/og/package.json ./package.json
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/og/node_modules ./node_modules
 COPY --from=builder /app/public/fonts ./public/fonts
 COPY --from=builder /app/public/hero.png ./public/hero.png

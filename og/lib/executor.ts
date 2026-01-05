@@ -2,7 +2,7 @@
 // using standard Function constructor (like client-side).
 // TODO: harden with 'vm2' or independent isolated-vm if security is critical later.
 
-import { NormalizedParams } from '@/lib/og-common';
+import { NormalizedParams } from '../../lib/og-common';
 import { LitNodeClient } from '@lit-protocol/lit-node-client';
 import { LIT_NETWORK } from '@lit-protocol/constants';
 import { LitActionResource, createSiweMessage } from '@lit-protocol/auth-helpers';
@@ -127,7 +127,7 @@ if (typeof main === 'function') {
             sessionSigs
         });
 
-        // console.log('[Executor] Raw Lit Response:', JSON.stringify(res, null, 2));
+        console.log('[Executor] Raw Lit Response:', JSON.stringify(res, null, 2));
 
         // Format logs
         const logs = (res.logs || "").split('\n');
