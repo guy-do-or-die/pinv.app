@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useWalletClient, useAccount, useChainId } from "wagmi";
-import { signBundle, encodeBundle, Bundle } from "@/lib/bundle-utils";
+import { encodeBundle, Bundle } from "@/lib/bundle-utils";
 
-import { uploadToIpfs } from "@/lib/ipfs";
+import { uploadToIpfs } from "@/lib/ipfs-client";
 
 interface ManifestData {
     dataCode: string;

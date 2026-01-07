@@ -47,7 +47,10 @@ async function run() {
         const proxiedReact = { ...React };
         // Intercept createElement to enforce styles if needed (similar to existing logic)
         proxiedReact.createElement = (type, props, ...children) => {
-            if (type === 'div' && props) {
+            // Ensure props is an object
+            props = props || {};
+
+            if (type === 'div') {
                 const newStyle = { ...(props.style || {}) };
                 if (!newStyle.display) {
                     newStyle.display = 'flex';
@@ -68,7 +71,7 @@ async function run() {
             }
 
             // AUTO-FIX: Resolve relative image URLs in backgroundImage
-            if (props && props.style && props.style.backgroundImage) {
+            if (props.style && props.style.backgroundImage) {
                 const bg = props.style.backgroundImage;
                 if (typeof bg === 'string') {
                     // Handle url(...) wrapper
