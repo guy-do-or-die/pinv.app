@@ -4,17 +4,27 @@ import { pinVConfig, pinVStoreAbi } from './contracts';
 import { fetchFromIpfs } from '../../lib/ipfs';
 import { Pin } from '../../types';
 
-function getClient() {
-    const chainId = process.env.NEXT_PUBLIC_CHAIN_ID || '84532';
-    const chain = chainId === '8453' ? base : baseSepolia;
-    return createPublicClient({
-        chain,
-        transport: http(process.env.RPC_URL)
-    });
-}
+const chainId = process.env.NEXT_PUBLIC_CHAIN_ID || '84532';
+const chain = chainId === '8453' ? base : baseSepolia;
+const publicClient = createPublicClient({
+    batch: { multicall: true },
+    chain,
+    transport: http(process.env.RPC_URL)
+});
+
+// Simple LRU Cache
+const pinCache = new Map<number, { data: Pin, expires: number }>();
+const CACHE_TTL = 60 * 1000; // 60 seconds
 
 export async function getPin(id: number): Promise<Pin | null> {
-    const publicClient = getClient();
+    // Check Cache
+    const cached = pinCache.get(id);
+    if (cached && cached.expires > Date.now()) {
+        console.log(`[Perf] Pin Cache Hit: ${id}`);
+        return cached.data;
+    }
+    console.log(`[Perf] Pin Cache Miss: ${id}`);
+
     // @ts-ignore
     const chainId = publicClient.chain.id;
     // @ts-ignore
@@ -29,11 +39,16 @@ export async function getPin(id: number): Promise<Pin | null> {
             abi: pinVConfig.abi,
             functionName: 'pinStores',
             args: [BigInt(id)]
-        });
+        }) as `0x${string}`;
 
         if (storeAddress === zeroAddress) return null;
 
-        // 2. Read Store Metadata
+        // 2. Read Store Metadata (Batch with Multicall)
+        // Note: readContract in viem treats multiple calls as distinct unless multicall is used explicitly or via batching option.
+        // We can use publicClient.multicall if we want explicit control, but Promise.all with batching configuration is easier if client supports it.
+        // However, standard viem public client doesn't batch by default without config.
+        // Let's use Promise.all for now but with the shared client, it reuses the HTTP connection (keep-alive).
+
         const [title, tagline, latestVer] = await Promise.all([
             publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'title' }),
             publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'tagline' }),
@@ -42,7 +57,7 @@ export async function getPin(id: number): Promise<Pin | null> {
 
         // 3. Get IPFS Data
         let widgetData = {};
-        if (latestVer > BigInt(0)) {
+        if ((latestVer as bigint) > BigInt(0)) {
             // @ts-ignore
             const ipfsId = await publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'versions', args: [latestVer] });
             if (ipfsId) {
@@ -51,13 +66,18 @@ export async function getPin(id: number): Promise<Pin | null> {
             }
         }
 
-        return {
+        const pin: Pin = {
             id: String(id),
             title: title as string,
             tagline: tagline as string,
             lastUpdated: new Date().toISOString(),
             widget: widgetData as any
         };
+
+        // Cache It
+        pinCache.set(id, { data: pin, expires: Date.now() + CACHE_TTL });
+
+        return pin;
     } catch (e) {
         console.error(`Failed to get pin ${id}`, e);
         return null;

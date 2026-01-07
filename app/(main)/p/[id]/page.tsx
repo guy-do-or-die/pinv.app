@@ -29,7 +29,8 @@ export async function generateMetadata(
     const appUrl = NEXT_PUBLIC_APP_URL;
 
     // Construct Dynamic Image URL with params
-    const imageObjUrl = new URL(`${appUrl}/api/og/p/${pinId}`);
+    // SAME DOMAIN ACCESS: Rely on Next.js Rewrite or Ingress to route /og/*
+    const imageObjUrl = new URL(`${appUrl}/og/${pinId}`);
     const timestamp = Date.now();
     imageObjUrl.searchParams.set('t', timestamp.toString());
 

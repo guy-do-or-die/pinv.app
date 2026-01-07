@@ -73,9 +73,8 @@ export function usePreviewRenderer(): UsePreviewRendererReturn {
 
             // 5. Construct OG URL
             const encodedBundle = encodeBundle(bundle);
-            // Use Application Proxy instead of Direct OG Engine URL to avoid AD-BLOCK/Brave Blocking (ERR_BLOCKED_BY_CLIENT)
-            // The Next.js API route will forward valid params to the internal OG Engine.
-            const baseUrl = `/api/og/p/${pinId}`;
+            const ogEngine = process.env.NEXT_PUBLIC_OG_ENGINE_URL || 'http://localhost:8080';
+            const baseUrl = `${ogEngine}/og/${pinId}`;
 
             // Allow unsigned bundle via new server logic
             // Add timestamp to force fresh render (cache busting)

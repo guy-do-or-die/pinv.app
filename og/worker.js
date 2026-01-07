@@ -12,6 +12,8 @@ console.log = console.error; // Redirect log to stderr
 
 async function run() {
     try {
+        const tStart = performance.now();
+
         // 1. Read Input from Stdin
         const chunks = [];
         for await (const chunk of process.stdin) {
@@ -31,11 +33,14 @@ async function run() {
             throw new Error('Missing uiCode');
         }
 
+        const tInput = performance.now();
+        // console.error(`[Worker Perf] Input Read: ${(tInput - tStart).toFixed(2)}ms`); 
+
         // 2. Load Fonts
         // We assume fonts are in ./public/fonts relative to CWD or current file
         const fontPath = path.join(__dirname, 'public/fonts');
-        const interMedium = fs.readFileSync(path.join(fontPath, 'Inter_18pt-Medium.ttf'));
-        const interSemiBold = fs.readFileSync(path.join(fontPath, 'Inter_18pt-SemiBold.ttf'));
+        const interRegular = fs.readFileSync(path.join(fontPath, 'Inter_18pt-Medium.ttf'));
+        const interBold = fs.readFileSync(path.join(fontPath, 'Inter_18pt-SemiBold.ttf'));
 
         // 3. Transpile User Code
         const transpiled = transform(uiCode, {
@@ -45,6 +50,8 @@ async function run() {
 
         // 4. Sandbox Setup
         const proxiedReact = { ...React };
+        const baseUrl = input.baseUrl || 'http://localhost:3000';
+
         // Intercept createElement to enforce styles if needed (similar to existing logic)
         proxiedReact.createElement = (type, props, ...children) => {
             // Ensure props is an object
@@ -58,18 +65,6 @@ async function run() {
                 props = { ...props, style: newStyle };
             }
 
-            const baseUrl = input.baseUrl || 'http://localhost:3000';
-
-            // AUTO-FIX: Resolve relative image URLs for Satori (img tags)
-            if (type === 'img' && props) {
-                if (!props.src || typeof props.src !== 'string') {
-                    // Start of Stub: Satori crashes on missing src. Provide transparent pixel.
-                    props = { ...props, src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' };
-                } else if (props.src.startsWith('/')) {
-                    props = { ...props, src: `${baseUrl}${props.src}` };
-                }
-            }
-
             // AUTO-FIX: Resolve relative image URLs in backgroundImage
             if (props.style && props.style.backgroundImage) {
                 const bg = props.style.backgroundImage;
@@ -79,26 +74,37 @@ async function run() {
                     const urlMatch = bg.match(/url\(['"]?([^'"]+)['"]?\)/);
                     if (urlMatch) {
                         const rawUrl = urlMatch[1];
-
                         // Check for common bad values
-                        if (rawUrl === 'undefined' || rawUrl === 'null' || !rawUrl) {
-                            // If undefined/null, DELETE the background image style to avoid crash
-                            const newStyle = { ...props.style };
-                            delete newStyle.backgroundImage;
-                            props = { ...props, style: newStyle };
-                        } else if (rawUrl.startsWith('/')) {
-                            const newUrl = `${baseUrl}${rawUrl}`;
-                            props = {
-                                ...props,
-                                style: {
-                                    ...props.style,
-                                    backgroundImage: `url('${newUrl}')`
-                                }
-                            };
-                        }
+                        try {
+                            if (rawUrl === 'undefined' || rawUrl === 'null' || !rawUrl) {
+                                // If undefined/null, DELETE the background image style to avoid crash
+                                const newStyle = { ...props.style };
+                                delete newStyle.backgroundImage;
+                                props = { ...props, style: newStyle };
+                            } else if (rawUrl.startsWith('/')) {
+                                const newUrl = `${baseUrl}${rawUrl}`;
+                                props = {
+                                    ...props,
+                                    style: {
+                                        ...props.style,
+                                        backgroundImage: `url('${newUrl}')`
+                                    }
+                                };
+                            }
+                        } catch (e) { }
                     }
                 }
             }
+            // AUTO-FIX: Resolve relative src in img tags
+            if (type === 'img' && props) {
+                if (!props.src || typeof props.src !== 'string') {
+                    // Start of Stub: Satori crashes on missing src. Provide transparent pixel.
+                    props = { ...props, src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' };
+                } else if (props.src.startsWith('/')) {
+                    props = { ...props, src: `${baseUrl}${props.src}` };
+                }
+            }
+
             return React.createElement(type, props, ...children);
         };
 
@@ -122,6 +128,9 @@ async function run() {
             throw new Error('No default export found in widget code');
         }
 
+        const tSetup = performance.now();
+        // console.error(`[Worker Perf] Setup: ${(tSetup - tInput).toFixed(2)}ms`);
+
         // 6. Satori Render (React -> SVG)
         const svg = await satori(
             React.createElement(WidgetComponent, props),
@@ -131,19 +140,21 @@ async function run() {
                 fonts: [
                     {
                         name: 'Inter',
-                        data: interMedium,
+                        data: interRegular,
+                        weight: 400,
                         style: 'normal',
-                        weight: 500,
                     },
                     {
                         name: 'Inter',
-                        data: interSemiBold,
+                        data: interBold,
+                        weight: 700,
                         style: 'normal',
-                        weight: 600,
-                    }
+                    },
                 ],
             }
         );
+        const tSatori = performance.now();
+        console.error(`[Worker Perf] Satori Render: ${(tSatori - tSetup).toFixed(2)}ms`);
 
         // 7. Resvg Render (SVG -> PNG)
         const resvg = new Resvg(svg, {
@@ -151,6 +162,10 @@ async function run() {
         });
         const pngData = resvg.render();
         const pngBuffer = pngData.asPng();
+
+        const tResvg = performance.now();
+        console.error(`[Worker Perf] Resvg Render: ${(tResvg - tSatori).toFixed(2)}ms`);
+        console.error(`[Worker Perf] Total Worker: ${(tResvg - tStart).toFixed(2)}ms`);
 
         // 8. Output
         process.stdout.write(pngBuffer);

@@ -64,6 +64,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: "/og/:path*",
+        destination: `${process.env.NEXT_PUBLIC_OG_ENGINE_URL || "http://localhost:8080"}/og/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

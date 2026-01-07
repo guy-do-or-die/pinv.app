@@ -15,8 +15,10 @@ import { encodeBundle } from "@/lib/bundle-utils";
  * Build an OG image URL for a pin with given parameters.
  */
 export function buildOgUrl(pinId: number | string, params: Record<string, string> = {}, bustCache = true, pin?: Pin): string {
+    // 1. SAME DOMAIN ACCESS
+    // Use the main application URL. Next.js Rewrites (or Prod Ingress) will route /og/* to the Engine.
     const appUrl = NEXT_PUBLIC_APP_URL;
-    const url = new URL(`${appUrl}/api/og/p/${pinId}`);
+    const url = new URL(`${appUrl}/og/${pinId}`);
 
     // OPTIMIZATION: Use signed bundle if available (Client-Side Generation)
     // DISABLED per user request for "No Security/Smooth UX" and to fix caching issues.

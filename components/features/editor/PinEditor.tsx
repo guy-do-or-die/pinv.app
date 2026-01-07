@@ -118,9 +118,9 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
                     ts: initialWidget.timestamp
                 };
                 const encodedBundle = encodeBundle(bundle);
-                // Use Application Proxy instead of Direct OG Engine URL to avoid AD-BLOCK/Brave Blocking
-                // const baseUrl = process.env.NEXT_PUBLIC_OG_ENGINE_URL || 'http://localhost:8080';
-                const baseUrl = `/api/og/p/${pinId}`;
+                const ogEngine = process.env.NEXT_PUBLIC_OG_ENGINE_URL || 'http://localhost:8080';
+                const baseUrl = `${ogEngine}/og/${pinId}`;
+
                 const url = `${baseUrl}?b=${encodedBundle}&sig=${initialWidget.signature}&t=${Date.now()}`;
 
                 setCachedImageUrl(url);
