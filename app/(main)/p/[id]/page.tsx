@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { Metadata, ResolvingMetadata } from 'next';
 import { getPin } from '@/lib/server/pin';
 import { NEXT_PUBLIC_APP_URL } from '@/lib/config';
+import { encodeBundle } from '@/lib/bundle-utils';
 import PinViewer from "@/components/features/viewer/PinViewer";
 import { constructMetadata } from "@/lib/metadata";
 
@@ -31,9 +32,25 @@ export async function generateMetadata(
     // Construct Dynamic Image URL with params
     // SAME DOMAIN ACCESS: Rely on Next.js Rewrite or Ingress to route /og/*
     const imageObjUrl = new URL(`${appUrl}/og/${pinId}`);
-    const timestamp = Date.now();
-    imageObjUrl.searchParams.set('t', timestamp.toString());
 
+    // If we have a signed, versioned pin state, use it to ensure the OG image matches exactly
+    if (pin.version && pin.widget?.signature && pin.widget?.timestamp) {
+        const bundle = {
+            ver: pin.version,
+            params: pin.widget.previewData || {},
+            ts: pin.widget.timestamp
+        };
+        const encodedBundle = encodeBundle(bundle);
+        imageObjUrl.searchParams.set('b', encodedBundle);
+        imageObjUrl.searchParams.set('sig', pin.widget.signature);
+        // Omit 't' to allow caching of this specific version
+    } else {
+        // Fallback or Dynamic: use timestamp to force fresh render
+        const timestamp = Date.now();
+        imageObjUrl.searchParams.set('t', timestamp.toString());
+    }
+
+    // Apply search params overrides if present (e.g. dynamic frames)
     if (resolvedSearchParams) {
         Object.entries(resolvedSearchParams).forEach(([key, value]) => {
             if (typeof value === 'string') {

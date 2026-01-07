@@ -11,9 +11,6 @@ import {
 import { chain } from "@/components/features/wallet";
 import TxButton from "@/components/shared/TxButton";
 import { notify } from "@/components/shared/Notifications";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { useState } from "react";
 
 interface SavePinButtonProps {
     pinId: number;
@@ -48,7 +45,6 @@ export function SavePinButton({
 }: SavePinButtonProps) {
     const router = useRouter();
     const { loggedIn } = useAccount();
-    const [isPreparing, setIsPreparing] = useState(false);
 
     // 1. Get Factory Address
     // @ts-ignore - address index signature
@@ -94,50 +90,36 @@ export function SavePinButton({
         }
     };
 
-    const handlePrepare = async () => {
-        if (!onPrepareSave) return;
-        setIsPreparing(true);
-        try {
-            await onPrepareSave();
-        } catch (e) {
-            console.error("Prepare save failed:", e);
-            notify("Failed to prepare save (IPFS upload)", "error");
-        } finally {
-            setIsPreparing(false);
+    // 4. Trigger Logic (One-Click Save)
+    const handleTrigger = async () => {
+        if (manifestCid) return true; // Already uploaded
+        if (onPrepareSave) {
+            try {
+                await onPrepareSave();
+                // Wait a tick to ensure prop propagation? 
+                // React state updates are batched, but async await usually breaks batching or ensures ordering.
+                // The parent re-render will happen.
+                return true;
+            } catch (e) {
+                console.error("Prepare failed", e);
+                return false;
+            }
         }
+        return false;
     };
 
-    // If we don't have a CID yet, we are in "Draft" mode -> Button triggers Prepare (Upload)
-    if (!manifestCid) {
-        return (
-            <Button
-                variant="default" // Use default (Brand Blue usually) or secondary?
-                // Using standard button until ready
-                className={className || "min-w-[120px]"}
-                disabled={disabled || isPreparing || !onPrepareSave}
-                onClick={handlePrepare}
-            >
-                {isPreparing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                    "SAVE"
-                )}
-            </Button>
-        );
-    }
-
-    // If we DO have a CID, we are Ready -> TxButton triggers On-Chain Write
     return (
         <TxButton
-            text="CONFIRM"
+            text="SAVE"
             variant="default"
-            className={className || "min-w-[120px] bg-green-600 hover:bg-green-700"} // Distinct color for Confirm?
+            className={className || "min-w-[120px]"}
             simulateHook={useSimulatePinVStoreAddVersion}
             writeHook={useWritePinVStoreAddVersion}
             params={{
                 address: storeAddress,
-                args: [manifestCid || ""], // Should be present now
-                enabled: !!storeAddress && loggedIn && !!manifestCid && !disabled,
+                args: [manifestCid || ""], // Will be populated when trigger completes
+                trigger: handleTrigger, // The magic
+                enabled: !!storeAddress && loggedIn && !disabled,
                 onConfirmationSuccess: handleBackendUpdate
             }}
         />
