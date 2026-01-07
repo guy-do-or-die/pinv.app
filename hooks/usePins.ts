@@ -32,7 +32,6 @@ export function usePins() {
             let startId: number;
 
             if (lastId === null) {
-                // First load: get latest ID
                 const nextTokenId = await publicClient.readContract({
                     address,
                     abi: pinVConfig.abi,
@@ -51,51 +50,66 @@ export function usePins() {
             }
 
             const endId = Math.max(1, startId - limit + 1);
-            const newPins: Pin[] = [];
+            const ids: number[] = [];
+            for (let i = startId; i >= endId; i--) ids.push(i);
 
-            // Iterate backwards
-            for (let id = startId; id >= endId; id--) {
-                try {
-                    // 1. Get Store Address
-                    const storeAddress = await publicClient.readContract({
-                        address,
-                        abi: pinVConfig.abi,
-                        functionName: 'pinStores',
-                        args: [BigInt(id)]
-                    });
+            // 1. Batch Fetch Stores (Parallel)
+            const storeCalls = ids.map(id => ({
+                address,
+                abi: pinVConfig.abi,
+                functionName: 'pinStores',
+                args: [BigInt(id)]
+            }));
+            const storeResults = await publicClient.multicall({ contracts: storeCalls });
 
-                    if (storeAddress === zeroAddress) continue;
+            const validStores = storeResults
+                .map((res, i) => ({ id: ids[i], address: res.result as `0x${string}` }))
+                .filter(s => s.address && s.address !== zeroAddress);
 
-                    // 2. Read Store Metadata
-                    // Multicall would be better here
-                    const [title, tagline, latestVer] = await Promise.all([
-                        publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'title' }),
-                        publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'tagline' }),
-                        publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'latestVersion' }),
-                    ]);
+            // 2. Batch Fetch Metadata (Parallel)
+            // Flatten calls: [Title1, Tag1, Ver1, Title2, Tag2, Ver2, ...]
+            const metaCalls = validStores.flatMap(s => [
+                { address: s.address, abi: pinVStoreAbi, functionName: 'title' },
+                { address: s.address, abi: pinVStoreAbi, functionName: 'tagline' },
+                { address: s.address, abi: pinVStoreAbi, functionName: 'latestVersion' }
+            ]);
 
-                    // 3. Get IPFS Data
-                    let widgetData = {};
-                    if (latestVer > BigInt(0)) {
-                        // @ts-ignore
-                        const ipfsId = await publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'versions', args: [latestVer] });
+            const metaResults = await publicClient.multicall({ contracts: metaCalls });
+
+            // 3. Process & Fetch IPFS (Concurrent)
+            const newPins = (await Promise.all(validStores.map(async (store, i) => {
+                const baseIdx = i * 3;
+                const title = metaResults[baseIdx].result as string;
+                const tagline = metaResults[baseIdx + 1].result as string;
+                const latestVer = metaResults[baseIdx + 2].result as bigint;
+
+                let widgetData = {};
+                if (latestVer > BigInt(0)) {
+                    try {
+                        // Optimally, we could batch fetch versions too, but keeping it simple for now as version is dependent on latestVer
+                        const ipfsId = await publicClient.readContract({
+                            address: store.address,
+                            abi: pinVStoreAbi,
+                            functionName: 'versions',
+                            args: [latestVer]
+                        });
+
                         if (ipfsId) {
-                            widgetData = await fetchFromIpfs(ipfsId);
+                            widgetData = await fetchFromIpfs(ipfsId as string);
                         }
+                    } catch (e) {
+                        console.warn('Failed to fetch IPFS for pin', store.id);
                     }
-
-                    newPins.push({
-                        id: String(id),
-                        title,
-                        tagline,
-                        lastUpdated: new Date().toISOString(),
-                        widget: widgetData as any
-                    });
-
-                } catch (e) {
-                    console.error(`Failed to fetch pin ${id}`, e);
                 }
-            }
+
+                return {
+                    id: String(store.id),
+                    title,
+                    tagline,
+                    lastUpdated: new Date().toISOString(),
+                    widget: widgetData as any
+                };
+            }))).filter(Boolean) as Pin[];
 
             setPins(prev => {
                 // Deduplicate pins just in case

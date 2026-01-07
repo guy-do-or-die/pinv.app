@@ -95,7 +95,7 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
 
     // Extracted hooks
     const { generate, isGenerating, error: generateError } = useWidgetGeneration();
-    const { run: runDataCode, isRunning: isDataCodeRunning, error: dataCodeError, logs } = useDataCodeRunner();
+    const { run: runDataCode, isRunning: isDataCodeRunning, error: dataCodeError, logs, image: runnerImage } = useDataCodeRunner();
     const { render: renderPreview, isLoading: isPreviewLoading, imageUrl: previewImageUrl } = usePreviewRenderer();
 
     // Derived Dirty State
@@ -118,8 +118,8 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
                     ts: initialWidget.timestamp
                 };
                 const encodedBundle = encodeBundle(bundle);
-                const ogEngine = process.env.NEXT_PUBLIC_OG_ENGINE_URL || 'http://localhost:8080';
-                const baseUrl = `${ogEngine}/og/${pinId}`;
+                // SAME DOMAIN ACCESS: Rely on Next.js Rewrite (proxies to 8080 locallly, upstream in prod)
+                const baseUrl = `/og/${pinId}`;
 
                 const url = `${baseUrl}?b=${encodedBundle}&sig=${initialWidget.signature}&t=${Date.now()}`;
 
@@ -222,31 +222,21 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
         // Note: parameters contains metadata, previewData contains values
         // We use the passed 'userParams' which should be the *values*
 
-        // 1. Run Server-Side Logic (Fetch Logs)
-        // This hits the /execute endpoint on the OG Engine to get logs and results
-        runDataCode(dataCode, userParams).catch(err => console.warn('[PinEditor] Server logic execution failed (non-fatal):', err));
+        // 1. Run Unified Preview (Logs + Image) via /og/preview
+        // This returns the image Base64 immediately alongside logs
+        await runDataCode(dataCode, userParams, uiCode)
+            .catch(err => console.warn('[PinEditor] Preview execution failed (non-fatal):', err));
 
-        // 2. Trigger Preview Update (Start IPFS Upload & Sign)
-        // We pass 'userParams' (INPUTS), not 'result' (OUTPUTS).
-        // The Server will execute DataCode(Inputs) -> Outputs.
-        renderPreview({
-            dataCode: dataCode,
+        // 2. Mark as Previewed (Draft)
+        // We do NOT upload to IPFS yet. We wait for Save.
+        setLastPreviewedState({
             uiCode: uiCode,
-            previewData: userParams,
+            dataCode: dataCode,
             parameters: parameters,
-            userConfig: initialWidget?.userConfig
-        }, pinId, pin?.version).then((res) => {
-            if (res && res.cid) {
-                setLastPreviewedState({
-                    uiCode: uiCode,
-                    dataCode: dataCode,
-                    parameters: parameters,
-                    previewData: userParams,
-                    cid: res.cid,
-                    signature: res.signature || undefined,
-                    timestamp: res.timestamp || undefined
-                });
-            }
+            previewData: userParams,
+            cid: '', // Draft state (no CID yet)
+            signature: undefined,
+            timestamp: undefined
         });
     };
 
@@ -314,7 +304,7 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
                     <PinDisplayCard
                         title={title}
                         description={tagline}
-                        imageSrc={previewImageUrl || cachedImageUrl}
+                        imageSrc={runnerImage || previewImageUrl || cachedImageUrl}
                         isLoading={isGenerating || isPreviewLoading || isDataCodeRunning}
                     >
                         <div className="w-full px-0">
@@ -356,7 +346,28 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
                                     manifestCid={!isDirty && lastPreviewedState ? lastPreviewedState.cid : null}
                                     signature={!isDirty && lastPreviewedState ? lastPreviewedState.signature : undefined}
                                     timestamp={!isDirty && lastPreviewedState ? lastPreviewedState.timestamp : undefined}
-                                    disabled={!hasGenerated || isDataCodeRunning || isPreviewLoading || isDirty || ((!lastPreviewedState || lastPreviewedState.cid === pin?.version) && title === pin?.title && tagline === pin?.tagline)}
+                                    onPrepareSave={async () => {
+                                        const res = await renderPreview({
+                                            dataCode: dataCode,
+                                            uiCode: uiCode,
+                                            previewData: previewData,
+                                            parameters: parameters,
+                                            userConfig: initialWidget?.userConfig
+                                        }, pinId, pin?.version);
+
+                                        if (res && res.cid) {
+                                            setLastPreviewedState({
+                                                uiCode: uiCode,
+                                                dataCode: dataCode,
+                                                parameters: parameters,
+                                                previewData: previewData,
+                                                cid: res.cid,
+                                                signature: res.signature || undefined,
+                                                timestamp: res.timestamp || undefined
+                                            });
+                                        }
+                                    }}
+                                    disabled={isDataCodeRunning || isPreviewLoading || isDirty}
                                     className="w-full h-10 px-2 font-bold tracking-wider"
                                 />
                             </div>

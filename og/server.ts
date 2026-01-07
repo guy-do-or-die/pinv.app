@@ -52,18 +52,39 @@ server.register(cors, {
     allowedHeaders: ['Content-Type']
 });
 
-// Endpoint for executing Data Code (Lit Actions)
-server.post('/execute', async (req, reply) => {
+// Endpoint for Unified Preview (Executes Data Code + Renders Image)
+server.post('/og/preview', async (req, reply) => {
     try {
-        const { code, params } = req.body as { code: string, params: any };
-        if (!code) return reply.status(400).send({ error: "Missing code" });
+        const { dataCode, uiCode, params } = req.body as { dataCode?: string, uiCode?: string, params?: any };
 
-        // executeLitAction now returns { result, logs }
-        const { result, logs } = await executeLitAction(code, params || {});
-        return reply.send({ result, logs });
+        // 1. Execute Data Code (Lit Action)
+        let result = {};
+        let logs: string[] = [];
+
+        if (dataCode) {
+            const execRes = await executeLitAction(dataCode, params || {});
+            result = execRes.result || {};
+            logs = execRes.logs || [];
+        } else {
+            result = params || {};
+        }
+
+        // 2. Render Image (if UI Code provided)
+        let imageBase64 = null;
+        if (uiCode) {
+            const props = { ...params, ...result };
+            try {
+                const buffer = await renderImageInWorker(uiCode, props, 1200, 800);
+                imageBase64 = buffer.toString('base64');
+            } catch (e) {
+                logs.push("[Preview] Image Generation Failed: " + (e as any).message);
+            }
+        }
+
+        return reply.send({ result, logs, image: imageBase64 });
     } catch (e: any) {
         req.log.error(e);
-        return reply.status(500).send({ error: "Execution failed", logs: [e.message] });
+        return reply.status(500).send({ error: "Preview failed", logs: [e.message] });
     }
 });
 
@@ -82,6 +103,50 @@ function getStubImage(text: string): Buffer {
         if (fs.existsSync(imagePath)) return fs.readFileSync(imagePath);
     } catch (e) { }
     return Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==', 'base64');
+}
+
+// Helper: Render Image in Worker
+async function renderImageInWorker(uiCode: string, props: { [key: string]: any }, width: number, height: number): Promise<Buffer> {
+    const workerCmd = path.join(__dirname, 'worker.js');
+    const tSpawnStart = performance.now();
+    const child = spawn('bun', [workerCmd], { stdio: ['pipe', 'pipe', 'pipe'] });
+
+    const inputPayload = JSON.stringify({
+        uiCode,
+        props,
+        width,
+        height,
+        baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    });
+
+    child.stdin.write(inputPayload);
+    child.stdin.end();
+
+    const chunks: Buffer[] = [];
+    const errChunks: Buffer[] = [];
+    child.stdout.on('data', c => chunks.push(c));
+    child.stderr.on('data', c => errChunks.push(c));
+
+    const exitCode = await new Promise<number | null>(resolve => {
+        child.on('close', resolve);
+        setTimeout(() => { child.kill('SIGKILL'); resolve(-1); }, 10000);
+    });
+
+    console.log(`[Perf] Worker Total: ${(performance.now() - tSpawnStart).toFixed(2)}ms`);
+
+    if (errChunks.length > 0) {
+        console.error(Buffer.concat(errChunks).toString());
+    }
+
+    if (exitCode !== 0) {
+        console.error(`[OG] Worker failed: ${exitCode}`);
+        throw new Error('RENDER_FAILED');
+    }
+
+    const pngBuffer = Buffer.concat(chunks);
+    if (pngBuffer.length === 0) throw new Error('Empty output');
+
+    return pngBuffer;
 }
 
 // Internal Generation Function (Decoupled from Request)
@@ -159,48 +224,8 @@ async function generateOgImage(pinId: number, queryParams: Record<string, string
 
     const props = { ...baseProps, title: pin.title, tagline: pin.tagline };
 
-    // 3. Worker Render
-    const width = 1200;
-    const height = 800;
-    const workerCmd = path.join(__dirname, 'worker.js');
-
-    const tSpawnStart = performance.now();
-    const child = spawn('bun', [workerCmd], { stdio: ['pipe', 'pipe', 'pipe'] });
-
-    const inputPayload = JSON.stringify({
-        uiCode,
-        props,
-        width,
-        height,
-        baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    });
-
-    child.stdin.write(inputPayload);
-    child.stdin.end();
-
-    const chunks: Buffer[] = [];
-    const errChunks: Buffer[] = [];
-    child.stdout.on('data', c => chunks.push(c));
-    child.stderr.on('data', c => errChunks.push(c));
-
-    const exitCode = await new Promise<number | null>(resolve => {
-        child.on('close', resolve);
-        setTimeout(() => { child.kill('SIGKILL'); resolve(-1); }, 10000);
-    });
-
-    console.log(`[Perf] Worker Total: ${(performance.now() - tSpawnStart).toFixed(2)}ms`);
-
-    if (errChunks.length > 0) {
-        console.error(Buffer.concat(errChunks).toString());
-    }
-
-    if (exitCode !== 0) {
-        console.error(`[OG] Worker failed: ${exitCode}`);
-        throw new Error('RENDER_FAILED');
-    }
-
-    const pngBuffer = Buffer.concat(chunks);
-    if (pngBuffer.length === 0) throw new Error('Empty output');
+    // 3. Worker Render (Using Helper)
+    const pngBuffer = await renderImageInWorker(uiCode, props, 1200, 800);
 
     // 4. Cache
     try {

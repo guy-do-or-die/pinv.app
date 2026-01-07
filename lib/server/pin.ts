@@ -4,19 +4,19 @@ import { pinVConfig, pinVStoreAbi } from '@/hooks/contracts';
 import { fetchFromIpfs } from '@/lib/ipfs';
 import { Pin } from '@/types';
 
-function getClient() {
-    const chain = process.env.NEXT_PUBLIC_CHAIN_ID === '8453' ? base : baseSepolia;
-    return createPublicClient({
-        chain,
-        transport: http()
-    });
-}
+const chain = process.env.NEXT_PUBLIC_CHAIN_ID === '8453' ? base : baseSepolia;
+
+// Global Client with Multicall enabled
+const publicClient = createPublicClient({
+    chain,
+    transport: http(),
+    batch: {
+        multicall: true
+    }
+});
 
 export async function getPin(id: number): Promise<Pin | null> {
-    const publicClient = getClient();
-    // @ts-ignore
     const chainId = publicClient.chain.id;
-    // @ts-ignore
     const address = pinVConfig.address[chainId] as `0x${string}`;
 
     if (address === zeroAddress) return null;
@@ -28,24 +28,27 @@ export async function getPin(id: number): Promise<Pin | null> {
             abi: pinVConfig.abi,
             functionName: 'pinStores',
             args: [BigInt(id)]
-        });
+        }) as `0x${string}`;
 
         if (storeAddress === zeroAddress) return null;
 
-        // 2. Read Store Metadata
+        // 2. Read Store Metadata (Multicall Batched)
+        // We use the multicall-enabled client, letting viem batch these automatically via Promise.all
+        // or we can use explicit multicall if we want strict guarantees, but simple Promise.all with batch client is usually cleaner.
+
         const [title, tagline, latestVer] = await Promise.all([
-            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'title' }),
-            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'tagline' }),
-            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'latestVersion' }),
+            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'title' }) as Promise<string>,
+            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'tagline' }) as Promise<string>,
+            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'latestVersion' }) as Promise<bigint>,
         ]);
 
         // 3. Get IPFS Data
         let widgetData = {};
         if (latestVer > BigInt(0)) {
-            // @ts-ignore
             const ipfsId = await publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'versions', args: [latestVer] });
+
             if (ipfsId) {
-                widgetData = await fetchFromIpfs(ipfsId);
+                widgetData = await fetchFromIpfs(ipfsId as string);
             }
         }
 

@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader } from "@/components/shared/Loader";
 import { ScanFace } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface PinDisplayCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
     title: React.ReactNode;
@@ -29,10 +29,15 @@ export default function PinDisplayCard({
     ...props
 }: PinDisplayCardProps) {
     const [isImageLoaded, setIsImageLoaded] = useState(false);
+    const imgRef = useRef<HTMLImageElement>(null);
 
     // Reset loading state when source changes
     useEffect(() => {
-        setIsImageLoaded(false);
+        if (imgRef.current?.complete) {
+            setIsImageLoaded(true);
+        } else {
+            setIsImageLoaded(false);
+        }
     }, [imageSrc]);
 
     return (
@@ -50,6 +55,7 @@ export default function PinDisplayCard({
                     {imageSrc ? (
                         <>
                             <img
+                                ref={imgRef}
                                 src={imageSrc}
                                 alt="Pin Preview"
                                 className={cn(

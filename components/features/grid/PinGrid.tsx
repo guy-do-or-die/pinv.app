@@ -92,14 +92,6 @@ export default function PinGrid({ initialPins }: PinGridProps) {
                         </Card>
                     </Link>
                 ))}
-
-                {!isLoading && pins.length === 0 && (
-                    <div className="col-span-full flex flex-col items-center justify-center py-32 text-center space-y-4 border border-dashed border-border/50 bg-card/50 rounded-none relative overflow-hidden group">
-                        <p className="text-muted-foreground pb-4 font-mono text-sm tracking-widest uppercase max-w-md z-10">
-                            No pins detected. <span className="text-primary font-bold">Initialize Protocol.</span>
-                        </p>
-                    </div>
-                )}
             </div>
 
             {/* Infinite Scroll Sentinel & Loader */}

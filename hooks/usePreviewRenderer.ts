@@ -73,8 +73,8 @@ export function usePreviewRenderer(): UsePreviewRendererReturn {
 
             // 5. Construct OG URL
             const encodedBundle = encodeBundle(bundle);
-            const ogEngine = process.env.NEXT_PUBLIC_OG_ENGINE_URL || 'http://localhost:8080';
-            const baseUrl = `${ogEngine}/og/${pinId}`;
+            // SAME DOMAIN ACCESS: Rely on Next.js Rewrite
+            const baseUrl = `/og/${pinId}`;
 
             // Allow unsigned bundle via new server logic
             // Add timestamp to force fresh render (cache busting)
