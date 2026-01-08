@@ -44,6 +44,10 @@ export function buildOgUrl(pinId: number | string, params: Record<string, string
         url.searchParams.set('t', Date.now().toString());
     }
 
+    if (pin?.version) {
+        url.searchParams.set('ver', pin.version);
+    }
+
     Object.entries(params).forEach(([key, value]) => {
         if (value) url.searchParams.set(key, value);
     });

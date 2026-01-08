@@ -20,8 +20,8 @@ dotenv.config({ path: path.join(__dirname, '../.env.local'), override: true });
 
 // Environment & Config
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
-const CACHE_TTL = 86400; // 24 hours (Availability)
-const REVALIDATE_TTL = 60; // 60 seconds (Freshness)
+const CACHE_TTL = 604800; // 7 days (Long-term storage)
+const REVALIDATE_TTL = 86400; // 24 hours (Freshness check - unlikely to fire if Version keying works)
 const LOCK_TTL = 30; // 30s lock for generation
 const PORT = parseInt(process.env.PORT || '8080');
 const TIMESTAMP_BUCKET_MS = parseInt(process.env.TIMESTAMP_BUCKET_MS || '60000'); // 1 minute bucketing to match TTL
@@ -150,20 +150,22 @@ async function renderImageInWorker(uiCode: string, props: { [key: string]: any }
 }
 
 // Internal Generation Function (Decoupled from Request)
-async function generateOgImage(pinId: number, queryParams: Record<string, string>, authorizedBundle: any, cacheKey: string): Promise<Buffer> {
+async function generateOgImage(pinId: number, queryParams: Record<string, string>, authorizedBundle: any, cacheKey: string, preFetchedPin?: any): Promise<Buffer> {
     const t0 = performance.now();
-    let pin = null;
+    let pin = preFetchedPin;
 
-    // 1. Fetch Pin
-    if (pinId === 0) {
-        pin = {
-            id: 0,
-            title: "Preview",
-            tokenURI: "",
-            widget: { uiCode: "", previewData: {}, userConfig: {} }
-        };
-    } else {
-        pin = await getPin(pinId);
+    // 1. Fetch Pin (if not provided)
+    if (!pin) {
+        if (pinId === 0) {
+            pin = {
+                id: 0,
+                title: "Preview",
+                tokenURI: "",
+                widget: { uiCode: "", previewData: {}, userConfig: {} }
+            };
+        } else {
+            pin = await getPin(pinId);
+        }
     }
     const tPinFetch = performance.now();
     console.log(`[Perf] Pin Fetch: ${(tPinFetch - t0).toFixed(2)}ms`);
@@ -178,7 +180,11 @@ async function generateOgImage(pinId: number, queryParams: Record<string, string
         ...(pin.widget?.userConfig || {}),
     };
 
-    // 2. Apply Overrides / Bundle
+    // 2. Extract Defaults
+    // Use previewData as the source of truth for defaults (includes secrets)
+    const defaultParams: Record<string, any> = { ...pin.widget?.previewData };
+
+    // 3. Apply Overrides / Bundle
     const overrides: Record<string, string> = {};
     const reservedKeys = ['b', 'sig', 'ver', 'ts', 'tokenId', 't'];
     Object.keys(queryParams).forEach(key => {
@@ -195,12 +201,16 @@ async function generateOgImage(pinId: number, queryParams: Record<string, string
         }
         if (authorizedBundle && authorizedBundle.params) {
             const dataCode = authorizedBundle.ver ? (await getManifest(authorizedBundle.ver))?.dataCode : pin.widget?.dataCode;
-            const paramsToRun = { ...authorizedBundle.params, ...overrides };
+
+            // CRITICAL FIX: Merge Defaults + Bundle parameters
+            // This ensures hidden secrets (like API keys) defined in 'previewData' but not sent by the client are preserved.
+            const paramsToRun = { ...defaultParams, ...authorizedBundle.params, ...overrides };
+
             if (dataCode) {
                 const { result } = await executeLitAction(dataCode, paramsToRun);
                 if (result) baseProps = { ...baseProps, ...result };
             } else {
-                baseProps = { ...baseProps, ...authorizedBundle.params };
+                baseProps = { ...baseProps, ...paramsToRun };
             }
         }
     } else {
@@ -243,11 +253,12 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
     const pinId = parseInt(request.params.pinId);
     if (isNaN(pinId)) return reply.code(400).send('Invalid Pin ID');
 
-    const { b, sig } = request.query;
+    const { b, sig, ver } = request.query;
     let authorizedBundle: any = null;
     let cacheParamsHash = '';
     let cacheVer = 'latest';
     let cacheTs = '';
+    let preFetchedPin = null;
 
     // 1. Auth & Bundle Parsing
     if (b) {
@@ -257,11 +268,17 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
             if (sig) {
                 const signer = await verifySignature(pinId, bundle, sig);
                 if (signer) {
-                    const isOwner = (pinId === 0) ? true : await checkOwnership(signer, pinId);
-                    if (isOwner) authorized = true;
+                    // Integrity verified. Allow preview of signed bundle.
+                    authorized = true;
+                    console.log(`[OG Auth] Signature Verified. Signer: ${signer}`);
+                } else {
+                    console.log(`[OG Auth] Signature Verification FAILED for bundle.`);
                 }
             } else {
-                authorized = true; // Unsigned bundle allowed
+                // Check if internal consistency allows unsigned? (Usually no for remote)
+                // authorized = true; // Unsigned bundle allowed
+                console.log(`[OG Auth] No signature provided.`);
+                authorized = true;
             }
 
             if (authorized) {
@@ -270,7 +287,22 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
                 cacheTs = bundle.ts ? String(bundle.ts) : '';
                 if (bundle.params) cacheParamsHash = computeParamsHash(bundle.params);
             }
+        } else {
+            console.log(`[OG Auth] Failed to parse bundle string.`);
         }
+    } else {
+        // Optimistic Versioning: Fetch Pin version to key the cache
+        // detailed abuse prevention: caching based on Version
+        try {
+            // Support explicit version override from query (bypass RPC latest check)
+            const explicitVer = ver ? BigInt(ver) : undefined;
+            preFetchedPin = await getPin(pinId, explicitVer);
+
+            if (preFetchedPin) {
+                // Now preFetchedPin has .version set!
+                cacheVer = preFetchedPin.version || (explicitVer ? ver : 'latest') as string;
+            }
+        } catch (e) { /* ignore */ }
     }
 
     // 2. Cache Key
@@ -314,7 +346,9 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
     // Hit?
     if (cachedBuffer) {
         // Serve Stale Immediately
+        const dynamicTTL = b ? 60 : REVALIDATE_TTL;
         reply.header('Content-Type', 'image/png');
+        reply.header('Cache-Control', `public, max-age=${dynamicTTL}, stale-while-revalidate=${dynamicTTL}`);
         reply.header('X-Cache', 'HIT-SWR');
         reply.send(cachedBuffer);
 
@@ -330,7 +364,7 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
             const isFresh = await redis.exists(freshKey);
 
             if (isFresh) {
-                console.log(`[OG] SWR Cache HIT-FRESH (Window: 60s). Skipping background update.`);
+                console.log(`[OG] SWR Cache HIT-FRESH (Window: 24h). Skipping background update.`);
             } else {
                 console.log(`[OG] SWR Cache HIT-STALE. Response Sent. Scheduling background update...`);
                 setTimeout(() => {
@@ -338,7 +372,7 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
                     // Set fresh key immediately to prevent overlapped triggers in the same window
                     redis.set(freshKey, '1', 'EX', REVALIDATE_TTL);
 
-                    generateOgImage(pinId, queryParams, authorizedBundle, cacheKey)
+                    generateOgImage(pinId, queryParams, authorizedBundle, cacheKey, preFetchedPin)
                         .then(() => redis.del(lockKey))
                         .catch(e => {
                             console.error("[OG] Background SWR Failed:", e);
@@ -370,10 +404,12 @@ server.get<{ Params: { pinId: string }, Querystring: { b?: string, sig?: string,
             return reply.code(504).type('image/png').send(getStubImage('Timeout'));
         }
 
-        const freshBuffer = await generateOgImage(pinId, queryParams, authorizedBundle, cacheKey);
+        const freshBuffer = await generateOgImage(pinId, queryParams, authorizedBundle, cacheKey, preFetchedPin);
         await redis.del(lockKey);
 
+        const dynamicTTL = b ? 60 : REVALIDATE_TTL;
         reply.header('Content-Type', 'image/png');
+        reply.header('Cache-Control', `public, max-age=${dynamicTTL}, stale-while-revalidate=${dynamicTTL}`);
         reply.header('X-Cache', 'MISS');
         return reply.send(freshBuffer);
 

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { Metadata, ResolvingMetadata } from 'next';
 import { getPin } from '@/lib/server/pin';
 import { NEXT_PUBLIC_APP_URL } from '@/lib/config';
-import { encodeBundle } from '@/lib/bundle-utils';
+import { encodeBundle, decodeBundle } from '@/lib/bundle-utils';
 import PinViewer from "@/components/features/viewer/PinViewer";
 import { constructMetadata } from "@/lib/metadata";
 
@@ -82,9 +82,20 @@ export default async function PinPage({ params, searchParams }: Props) {
 
     // Convert searchParams to simple Record<string, string> for PinParams
     const initialParams: Record<string, string> = {};
+
+    // 1. Decode Bundle if present (Priority)
+    const rawB = resolvedSearchParams?.['b'];
+    if (rawB && typeof rawB === 'string') {
+        const bundle = decodeBundle(rawB);
+        if (bundle && bundle.params) {
+            Object.assign(initialParams, bundle.params);
+        }
+    }
+
+    // 2. Apply other params (Overrides)
     if (resolvedSearchParams) {
         Object.entries(resolvedSearchParams).forEach(([key, value]) => {
-            if (typeof value === 'string') {
+            if (typeof value === 'string' && key !== 'b' && key !== 'sig') {
                 initialParams[key] = value;
             }
         });

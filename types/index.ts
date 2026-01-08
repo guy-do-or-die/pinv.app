@@ -12,6 +12,7 @@ export interface Pin {
   id: string;
   title: string;
   tagline: string;
+  creator?: string;
   lastUpdated: string;
   version?: string; // IPFS CID of the current version
   widget?: {

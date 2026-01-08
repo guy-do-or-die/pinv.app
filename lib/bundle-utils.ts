@@ -64,3 +64,19 @@ export function encodeBundle(bundle: Bundle): string {
     const base64 = btoa(binString);
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+
+export function decodeBundle(encoded: string): Bundle | null {
+    try {
+        const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = base64.length % 4;
+        const paddedIdx = padding ? base64 + '='.repeat(4 - padding) : base64;
+
+        const binString = atob(paddedIdx);
+        const bytes = Uint8Array.from(binString, (c) => c.charCodeAt(0));
+        const jsonStr = new TextDecoder().decode(bytes);
+        return JSON.parse(jsonStr);
+    } catch (e) {
+        console.error("Failed to decode bundle", e);
+        return null;
+    }
+}

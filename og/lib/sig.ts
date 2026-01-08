@@ -34,16 +34,22 @@ export async function verifySignature(
     signature: string
 ): Promise<string | null> {
     // 1. Check timestamp validity first
-    if (!bundle.ts) return null;
+    if (!bundle.ts) {
+        console.log('[Sig] Missing TS');
+        return null;
+    }
 
     const now = Math.floor(Date.now() / 1000);
-    // Allow for bucket variance? The prompt says "ts is a minute bucket".
-    // But we treat it as a timestamp to check age.
-    // If it's a bucket, it's basically "floor(now/60)*60". 
-    // We check if it's too old or too far in future.
+    console.log(`[Sig] TS Check: Bundle=${bundle.ts}, Now=${now}, Diff=${now - bundle.ts}`);
 
-    if (now - bundle.ts > SIGNED_TS_MAX_AGE_SEC) return null; // Too old
-    if (bundle.ts - now > SIGNED_TS_FUTURE_SKEW_SEC) return null; // Too far in future
+    if (now - bundle.ts > SIGNED_TS_MAX_AGE_SEC) {
+        console.log('[Sig] TS Too Old');
+        return null;
+    }
+    if (bundle.ts - now > SIGNED_TS_FUTURE_SKEW_SEC) {
+        console.log('[Sig] TS Future Skew');
+        return null;
+    }
 
     // 2. Prepare Message
     const paramsStr = computeParamsHash(bundle.params || {});
@@ -69,6 +75,8 @@ export async function verifySignature(
             message,
             signature: signature as Hex
         });
+
+        console.log(`[Sig] Recovered: ${recovered}`);
 
         return recovered; // Returns the signer address (0x...)
 

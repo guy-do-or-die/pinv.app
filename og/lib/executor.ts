@@ -11,28 +11,46 @@ import { ethers } from 'ethers';
 // Global client instance to avoid reconnecting on every request
 let litClient: LitNodeClient | null = null;
 let litWallet: ethers.Wallet | null = null;
+let initPromise: Promise<LitNodeClient> | null = null;
 
 const NETWORK = process.env.LIT_NETWORK || 'datil-dev';
 const DEBUG = process.env.LIT_DEBUG === 'true';
 
 async function getLitClient() {
-    if (litClient) return litClient;
+    if (litClient && litWallet) return litClient;
 
-    console.log(`[OG] Connecting to Lit Network: ${NETWORK}`);
-    litClient = new LitNodeClient({
-        litNetwork: NETWORK as any,
-        debug: DEBUG
-    });
-
-    await litClient.connect();
-
-    // Create a random wallet for signing session requests
-    // We reuse this wallet for the lifecycle of the server process
-    if (!litWallet) {
-        litWallet = ethers.Wallet.createRandom() as unknown as ethers.Wallet;
+    // Concurrency Lock: If initializing, wait for it.
+    if (initPromise) {
+        return initPromise;
     }
 
-    return litClient;
+    // Start Initialization
+    initPromise = (async () => {
+        try {
+            console.log(`[OG] Connecting to Lit Network: ${NETWORK}`);
+            const client = new LitNodeClient({
+                litNetwork: NETWORK as any,
+                debug: DEBUG
+            });
+
+            await client.connect();
+
+            // Create a random wallet for signing session requests
+            // We reuse this wallet for the lifecycle of the server process
+            if (!litWallet) {
+                litWallet = ethers.Wallet.createRandom() as unknown as ethers.Wallet;
+            }
+
+            litClient = client;
+            return client;
+        } catch (e) {
+            console.error("Lit Init Failed:", e);
+            initPromise = null; // Reset lock on failure
+            throw e;
+        }
+    })();
+
+    return initPromise;
 }
 
 export async function executeLitAction(

@@ -14,20 +14,27 @@ const publicClient = createPublicClient({
 
 // Simple LRU Cache
 const pinCache = new Map<number, { data: Pin, expires: number }>();
-const CACHE_TTL = 60 * 1000; // 60 seconds
+const CACHE_TTL = 5 * 1000; // 5 seconds (Reduced from 60s to fix "Previous One" stale issue)
 
-export async function getPin(id: number): Promise<Pin | null> {
-    // Check Cache
-    const cached = pinCache.get(id);
-    if (cached && cached.expires > Date.now()) {
-        console.log(`[Perf] Pin Cache Hit: ${id}`);
-        return cached.data;
+// IPFS Cache (CID -> Content)
+// CIDs are immutable, so we can cache them for a very long time (e.g., 24h or indefinite)
+const ipfsCache = new Map<string, { data: any, expires: number }>();
+const IPFS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+export async function getPin(id: number, version?: bigint): Promise<Pin | null> {
+    // Check Cache (Only if looking for latest or if we want to cache specific versions later)
+    // For now, if version is provided, we bypass cache to ensure freshness, or cache by ID+Ver.
+    // Simplifying: Specific version requests bypass simple ID cache.
+    if (!version) {
+        const cached = pinCache.get(id);
+        if (cached && cached.expires > Date.now()) {
+            console.log(`[Perf] Pin Cache Hit: ${id}`);
+            return cached.data;
+        }
     }
-    console.log(`[Perf] Pin Cache Miss: ${id}`);
+    console.log(`[Perf] Pin Cache Miss: ${id} (Ver: ${version || 'latest'})`);
 
-    // @ts-ignore
     const chainId = publicClient.chain.id;
-    // @ts-ignore
     const address = pinVConfig.address[chainId] as `0x${string}`;
 
     if (address === zeroAddress) return null;
@@ -43,26 +50,46 @@ export async function getPin(id: number): Promise<Pin | null> {
 
         if (storeAddress === zeroAddress) return null;
 
-        // 2. Read Store Metadata (Batch with Multicall)
-        // Note: readContract in viem treats multiple calls as distinct unless multicall is used explicitly or via batching option.
-        // We can use publicClient.multicall if we want explicit control, but Promise.all with batching configuration is easier if client supports it.
-        // However, standard viem public client doesn't batch by default without config.
-        // Let's use Promise.all for now but with the shared client, it reuses the HTTP connection (keep-alive).
+        let title, tagline, targetVer;
 
-        const [title, tagline, latestVer] = await Promise.all([
-            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'title' }),
-            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'tagline' }),
-            publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'latestVersion' }),
-        ]);
+        if (version) {
+            // If version provided, we only need metadata + that version
+            targetVer = version;
+            [title, tagline] = await Promise.all([
+                publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'title' }),
+                publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'tagline' }),
+            ]);
+        } else {
+            // Standard Flow
+            let latestVer;
+            [title, tagline, latestVer] = await Promise.all([
+                publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'title' }),
+                publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'tagline' }),
+                publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'latestVersion' }),
+            ]);
+            targetVer = latestVer;
+        }
 
         // 3. Get IPFS Data
         let widgetData = {};
-        if ((latestVer as bigint) > BigInt(0)) {
+        if ((targetVer as bigint) > BigInt(0)) {
             // @ts-ignore
-            const ipfsId = await publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'versions', args: [latestVer] });
+            const ipfsId = await publicClient.readContract({ address: storeAddress, abi: pinVStoreAbi, functionName: 'versions', args: [targetVer] });
+
             if (ipfsId) {
-                // @ts-ignore
-                widgetData = await fetchFromIpfs(ipfsId);
+                const cid = ipfsId as string;
+                // Check IPFS Cache
+                const cachedIpfs = ipfsCache.get(cid);
+                if (cachedIpfs && cachedIpfs.expires > Date.now()) {
+                    console.log(`[Perf] IPFS Cache Hit: ${cid}`);
+                    widgetData = cachedIpfs.data;
+                } else {
+                    console.log(`[Perf] IPFS Cache Miss: ${cid}`);
+                    // @ts-ignore
+                    widgetData = await fetchFromIpfs(cid);
+                    // Cache It (Long Live)
+                    ipfsCache.set(cid, { data: widgetData, expires: Date.now() + IPFS_CACHE_TTL });
+                }
             }
         }
 
@@ -71,6 +98,7 @@ export async function getPin(id: number): Promise<Pin | null> {
             title: title as string,
             tagline: tagline as string,
             lastUpdated: new Date().toISOString(),
+            version: targetVer ? targetVer.toString() : undefined,
             widget: widgetData as any
         };
 

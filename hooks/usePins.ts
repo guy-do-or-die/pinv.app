@@ -67,21 +67,23 @@ export function usePins() {
                 .filter(s => s.address && s.address !== zeroAddress);
 
             // 2. Batch Fetch Metadata (Parallel)
-            // Flatten calls: [Title1, Tag1, Ver1, Title2, Tag2, Ver2, ...]
+            // Flatten calls: [Title1, Tag1, Ver1, Creator1, Title2, Tag2, Ver2, Creator2, ...]
             const metaCalls = validStores.flatMap(s => [
                 { address: s.address, abi: pinVStoreAbi, functionName: 'title' },
                 { address: s.address, abi: pinVStoreAbi, functionName: 'tagline' },
-                { address: s.address, abi: pinVStoreAbi, functionName: 'latestVersion' }
+                { address: s.address, abi: pinVStoreAbi, functionName: 'latestVersion' },
+                { address: s.address, abi: pinVStoreAbi, functionName: 'creator' }
             ]);
 
             const metaResults = await publicClient.multicall({ contracts: metaCalls });
 
             // 3. Process & Fetch IPFS (Concurrent)
             const newPins = (await Promise.all(validStores.map(async (store, i) => {
-                const baseIdx = i * 3;
+                const baseIdx = i * 4;
                 const title = metaResults[baseIdx].result as string;
                 const tagline = metaResults[baseIdx + 1].result as string;
                 const latestVer = metaResults[baseIdx + 2].result as bigint;
+                const creator = metaResults[baseIdx + 3].result as string;
 
                 let widgetData = {};
                 if (latestVer > BigInt(0)) {
@@ -106,6 +108,7 @@ export function usePins() {
                     id: String(store.id),
                     title,
                     tagline,
+                    creator,
                     lastUpdated: new Date().toISOString(),
                     widget: widgetData as any
                 };
