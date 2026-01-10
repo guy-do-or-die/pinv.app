@@ -1,6 +1,6 @@
 import { createPublicClient, http, zeroAddress } from 'viem';
 import { baseSepolia, base } from 'viem/chains';
-import { pinVConfig, pinVStoreAbi } from './contracts';
+import { pinVConfig, pinVStoreAbi } from '../utils/contracts';
 import { fetchFromIpfs } from '../../lib/ipfs';
 import { Pin } from '../../types';
 

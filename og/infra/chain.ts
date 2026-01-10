@@ -1,6 +1,6 @@
 import { createPublicClient, http } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
-import { pinVConfig } from './contracts';
+import { pinVConfig } from '../utils/contracts';
 
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '84532');
 const CHAIN = CHAIN_ID === 8453 ? base : baseSepolia;

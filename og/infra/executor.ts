@@ -1,10 +1,8 @@
 // Simple implementation of a "sandbox" for Lit Action code in Node.js
 // using standard Function constructor (like client-side).
-// TODO: harden with 'vm2' or independent isolated-vm if security is critical later.
 
 import { NormalizedParams } from '../../lib/og-common';
 import { LitNodeClient } from '@lit-protocol/lit-node-client';
-import { LIT_NETWORK } from '@lit-protocol/constants';
 import { LitActionResource, createSiweMessage } from '@lit-protocol/auth-helpers';
 import { ethers } from 'ethers';
 

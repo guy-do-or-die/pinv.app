@@ -2,11 +2,11 @@
     "name": "og-engine",
     "version": "1.0.0",
     "description": "Secure OG rendering service",
-    "main": "dist/server.js",
+    "main": "dist/api/server.js",
     "scripts": {
-        "dev": "bun --watch server.ts",
+        "dev": "bun --watch api/server.ts",
         "build": "tsc",
-        "start": "bun dist/server.js"
+        "start": "bun dist/api/server.js"
     },
     "dependencies": {
         "@fastify/cors": "^11.2.0",
