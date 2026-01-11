@@ -25,5 +25,34 @@ redis.on('error', (err) => {
     console.warn('[Redis] Connection failed, falling back to memory cache:', err.message);
 });
 
-// In-memory LRU fallback
-export const memoryCache = new Map<string, { data: Buffer, expires: number }>();
+
+// Safe LRU Cache (Bounded)
+class SafeLRUCache<K, V> {
+    private map: Map<K, V>;
+    private readonly MAX_SIZE = 500; // ~50MB limit
+
+    constructor() {
+        this.map = new Map<K, V>();
+    }
+
+    get(key: K): V | undefined {
+        return this.map.get(key);
+        // Note: For strict LRU, we would re-insert here, but for simple bounding, 
+        // FIFO/Insertion order is sufficient and faster.
+    }
+
+    set(key: K, value: V): void {
+        // Eviction Policy
+        if (this.map.size >= this.MAX_SIZE) {
+            const oldestKey = this.map.keys().next().value;
+            if (oldestKey !== undefined) {
+                this.map.delete(oldestKey);
+            }
+        }
+        this.map.set(key, value);
+    }
+}
+
+// Export Singleton
+export const memoryCache = new SafeLRUCache<string, { data: Buffer, expires: number }>();
+
