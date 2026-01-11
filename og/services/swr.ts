@@ -38,6 +38,11 @@ export async function serveWithSWR({ pinId, cacheKey, lockKey, generatorFn, repl
     if (!cachedBuffer) {
         logToFile('[SWR] Checking Redis...');
         cachedBuffer = await safeRedis(() => redis.getBuffer(cacheKey), null);
+
+        // Read-Through Optimization: Populate L1 if found in L2
+        if (cachedBuffer) {
+            memoryCache.set(cacheKey, { data: cachedBuffer, expires: Date.now() + REVALIDATE_TTL * 1000 });
+        }
     }
 
     // 2. HIT
