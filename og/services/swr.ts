@@ -77,7 +77,7 @@ export async function serveWithSWR({ pinId, cacheKey, lockKey, generatorFn, repl
                                 // Update Memory
                                 memoryCache.set(cacheKey, { data: buf, expires: Date.now() + REVALIDATE_TTL * 1000 });
                                 // Update Redis
-                                await redis.setBuffer(cacheKey, buf, 'EX', REVALIDATE_TTL * 10);
+                                await redis.set(cacheKey, buf, 'EX', REVALIDATE_TTL * 10);
                                 await redis.del(lockKey);
                             })
                             .catch(e => {

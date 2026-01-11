@@ -1,0 +1,34 @@
+# fly.staging.toml - Staging Environment
+app = 'pintv-og-staging'
+primary_region = 'iad'
+
+[build]
+  dockerfile = 'og/Dockerfile'
+  ignorefile = '.dockerignore'
+
+[env]
+  NODE_ENV = 'production' # Keep as production to mirror behavior
+  PORT = '8080'
+
+[[services]]
+  protocol = 'tcp'
+  internal_port = 8080
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
+  [services.concurrency]
+    type = 'requests'
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = '1gb'
+  cpus = 1
+  memory_mb = 1024
