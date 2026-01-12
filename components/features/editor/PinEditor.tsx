@@ -193,6 +193,8 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
         // UNLESS we are explicitly starting from scratch
         if (!fromScratch && hasGenerated && (dataCode || uiCode)) {
             finalPrompt = `
+                User Request: ${prompt}
+
                 Current Data Code:
                 \`\`\`javascript
                 ${dataCode}
@@ -203,11 +205,16 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
                 ${uiCode}
                 \`\`\`
 
-                User Request: ${prompt}
+                ${logs && logs.length > 0 ? `
+                Execution Logs:
+                \`\`\`
+                ${logs.map(l => `[${l.timestamp}] ${(l.level || 'info').toUpperCase()}: ${l.message || ''}`).join('\n')}
+                \`\`\`
+                ` : ''}
             `.trim();
         }
 
-        const result = await generate(finalPrompt);
+        const result = await generate(finalPrompt, previewData);
         if (result) {
             // Apply Metadata if AI suggested it
             if (result.title) setTitle(result.title);

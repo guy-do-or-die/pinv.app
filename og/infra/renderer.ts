@@ -36,7 +36,7 @@ export function getStubImage(text: string): Buffer {
 }
 
 // Helper: Render Image (Worker Pool)
-export async function renderImageInWorker(uiCode: string, props: { [key: string]: any }, width: number, height: number): Promise<Buffer> {
+export async function renderImageInWorker(uiCode: string, props: { [key: string]: any }, width: number, height: number): Promise<{ image: Buffer, logs: any[] }> {
     const tStart = performance.now();
 
     try {
@@ -48,8 +48,19 @@ export async function renderImageInWorker(uiCode: string, props: { [key: string]
             baseUrl: APP_URL
         });
 
-        console.log(`[Perf] Render (Worker Pool): ${(performance.now() - tStart).toFixed(2)}ms`);
-        return result;
+        console.log(`[Perf] Render (Worker Pool): ${(performance.now() - tStart).toFixed(2)}ms`); // This log happens in Main Thread
+
+        // Handle Legacy/Simple result (Buffer only)
+        if (Buffer.isBuffer(result)) {
+            return { image: result, logs: [] };
+        }
+
+        // Handle Structured Result
+        return {
+            image: result.image,
+            logs: result.logs || []
+        };
+
     } catch (e) {
         console.error(`[Renderer] Render Failed:`, e);
         throw new Error('RENDER_FAILED');

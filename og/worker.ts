@@ -10,11 +10,40 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 declare var self: any;
 
+// Log Interception
+function interceptLogs(callback: (logs: any[]) => Promise<any>) {
+    const logs: any[] = [];
+    const originalConsoleLog = console.log;
+    const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
+
+    console.log = (...args) => {
+        logs.push({ level: 'info', message: args.map(String).join(' '), timestamp: new Date().toISOString() });
+        originalConsoleLog(...args);
+    };
+    console.error = (...args) => {
+        logs.push({ level: 'error', message: args.map(String).join(' '), timestamp: new Date().toISOString() });
+        originalConsoleError(...args);
+    };
+    console.warn = (...args) => {
+        logs.push({ level: 'warn', message: args.map(String).join(' '), timestamp: new Date().toISOString() });
+        originalConsoleWarn(...args);
+    };
+
+    return callback(logs).finally(() => {
+        console.log = originalConsoleLog;
+        console.error = originalConsoleError;
+        console.warn = originalConsoleWarn;
+    });
+}
+
 self.onmessage = async (event: any) => {
     const { id, data } = event.data;
     try {
-        const result = await render(data);
-        self.postMessage({ id, result });
+        await interceptLogs(async (logs) => {
+            const image = await render(data);
+            self.postMessage({ id, result: { image, logs } });
+        });
     } catch (e: any) {
         self.postMessage({ id, error: e.message || String(e) });
     }
@@ -55,7 +84,8 @@ async function render(input: any) {
             graphemeImages
         });
     } catch (e: any) {
-        console.error("Satori Failed, Using Fallback:", e);
+        const msg = e.message || String(e);
+        console.error("Satori Failed, Using Fallback:", msg.length > 500 ? msg.substring(0, 500) + '... (truncated)' : msg);
         // Fallback Error Render
         const fallbackFonts = coreFonts.filter((f: any) => f.name === 'Inter');
 

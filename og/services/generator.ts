@@ -92,7 +92,7 @@ export async function generateOgImage(pinId: number, queryParams: Record<string,
     const props = { ...baseProps, title: pin.title, tagline: pin.tagline };
 
     // 3. Worker Render (Using Helper)
-    const pngBuffer = await renderImageInWorker(uiCode, props, OG_WIDTH, OG_HEIGHT);
+    const { image: pngBuffer } = await renderImageInWorker(uiCode, props, OG_WIDTH, OG_HEIGHT);
 
     // 4. Cache
     try {

@@ -97,9 +97,15 @@ export class BunWorkerPool extends EventEmitter {
             task.reject(new Error(msg.error));
         } else {
             // Re-hydrate Buffer (Bun postMessage transfers as Uint8Array)
-            const result = (msg.result instanceof Uint8Array)
-                ? Buffer.from(msg.result)
-                : msg.result;
+            let result = msg.result;
+            // Case 1: Result is direct Uint8Array (Legacy/Simple)
+            if (result instanceof Uint8Array) {
+                result = Buffer.from(result);
+            }
+            // Case 2: Result is Object with image: Uint8Array (Structured)
+            else if (result && typeof result === 'object' && result.image instanceof Uint8Array) {
+                result.image = Buffer.from(result.image);
+            }
 
             task.resolve(result);
         }

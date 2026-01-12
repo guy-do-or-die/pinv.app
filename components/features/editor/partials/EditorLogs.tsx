@@ -2,13 +2,15 @@ import React, { useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { FloatingActions } from "./FloatingActions";
 
+import { LogEntry } from "@/hooks/useDataCodeRunner";
+
 interface EditorLogsProps {
-    logs: string[];
+    logs: LogEntry[];
     lastRunTime?: Date | null;
 }
 
 export function EditorLogs({ logs, lastRunTime }: EditorLogsProps) {
-    const fullLog = logs.join("\n");
+    const fullLog = logs.map(l => `[${l.timestamp}] ${(l.level || 'info').toUpperCase()}: ${l.message || ''}`).join("\n");
     const timeString = lastRunTime ? lastRunTime.toLocaleTimeString() : "--:--:--";
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -58,9 +60,17 @@ export function EditorLogs({ logs, lastRunTime }: EditorLogsProps) {
                                 className="whitespace-pre-wrap break-all border-b border-border/50 py-0.5 last:border-0"
                             >
                                 <span className="opacity-50 mr-2 select-none">
-                                    {(i + 1).toString().padStart(2, '0')}
+                                    {new Date(log.timestamp).toLocaleTimeString()}
                                 </span>
-                                {log}
+                                <span className={cn(
+                                    "font-bold mr-2",
+                                    log.level === 'error' ? "text-red-500" :
+                                        log.level === 'warn' ? "text-yellow-500" :
+                                            "text-blue-500"
+                                )}>
+                                    [{(log.level || 'info').toUpperCase()}]
+                                </span>
+                                <span>{log.message}</span>
                             </div>
                         ))}
                     </div>

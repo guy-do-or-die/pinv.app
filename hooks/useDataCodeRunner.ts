@@ -2,13 +2,19 @@
 
 import { useState, useCallback } from "react";
 
+export interface LogEntry {
+    timestamp: string;
+    level: string;
+    message: string;
+}
+
 interface UseDataCodeRunnerReturn {
     run: (dataCode: string, params: Record<string, unknown>, uiCode?: string) => Promise<Record<string, unknown> | null>;
     isRunning: boolean;
     result: Record<string, unknown> | null;
     image: string | null;
     error: string | null;
-    logs: string[];
+    logs: LogEntry[];
 }
 
 /**
@@ -20,7 +26,7 @@ export function useDataCodeRunner(): UseDataCodeRunnerReturn {
     const [result, setResult] = useState<Record<string, unknown> | null>(null);
     const [image, setImage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [logs, setLogs] = useState<string[]>([]);
+    const [logs, setLogs] = useState<LogEntry[]>([]);
 
     const run = useCallback(async (
         dataCode: string,
@@ -57,7 +63,24 @@ export function useDataCodeRunner(): UseDataCodeRunnerReturn {
 
             // Set logs from server
             if (Array.isArray(data.logs)) {
-                setLogs(data.logs);
+                setLogs(data.logs.map((logMsg: any) => {
+                    // Handle if backend ever sends objects, otherwise treat as string
+                    if (typeof logMsg === 'object' && logMsg !== null) {
+                        return {
+                            timestamp: logMsg.timestamp || new Date().toISOString(),
+                            level: logMsg.level || 'info',
+                            message: logMsg.message || JSON.stringify(logMsg)
+                        };
+                    }
+                    const strMsg = String(logMsg);
+                    const lowerMsg = strMsg.toLowerCase();
+                    const isError = lowerMsg.includes('error') || lowerMsg.includes('fail') || lowerMsg.includes('missing') || lowerMsg.includes('exception');
+                    return {
+                        timestamp: new Date().toISOString(),
+                        level: isError ? 'error' : 'info',
+                        message: strMsg
+                    };
+                }));
             }
 
             if (data.image) {
@@ -74,7 +97,11 @@ export function useDataCodeRunner(): UseDataCodeRunnerReturn {
         } catch (err: any) {
             const errorMessage = err.message || "Unknown error occurred";
             setError(errorMessage);
-            setLogs(prev => [...prev, `[ERROR] ${errorMessage}`]);
+            setLogs(prev => [...prev, {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: errorMessage
+            }]);
             return null;
         } finally {
             setIsRunning(false);

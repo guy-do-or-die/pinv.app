@@ -27,8 +27,11 @@ export async function previewHandler(req: FastifyRequest, reply: FastifyReply) {
         if (uiCode) {
             const props = { ...params, ...result };
             try {
-                const buffer = await renderImageInWorker(uiCode, props, OG_WIDTH, OG_HEIGHT);
+                const { image: buffer, logs: renderLogs } = await renderImageInWorker(uiCode, props, OG_WIDTH, OG_HEIGHT);
                 imageBase64 = buffer.toString('base64');
+                if (renderLogs && renderLogs.length > 0) {
+                    logs.push(...renderLogs);
+                }
             } catch (e) {
                 logs.push("[Preview] Image Generation Failed: " + (e as any).message);
             }

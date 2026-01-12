@@ -166,7 +166,7 @@ if (typeof main === 'function') {
         console.log('[Executor] Raw Lit Response:', JSON.stringify(res, null, 2));
 
         // Format logs
-        const netLogs = (res.logs || "").split('\n');
+        const netLogs = (res.logs || "").split('\n').filter((l: string) => l.trim());
 
         // Parse result
         let result = null;

@@ -31,11 +31,18 @@ export function EditorPrompt({
     onBack
 }: EditorPromptProps) {
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const [activeAction, setActiveAction] = useState<'scratch' | 'refine' | null>(null);
 
     useEffect(() => {
-        setMounted(true);
-    }, []);
+        if (!isGenerating) {
+            setActiveAction(null);
+        }
+    }, [isGenerating]);
+
+    const handleGenerate = (fromScratch: boolean) => {
+        setActiveAction(fromScratch ? 'scratch' : 'refine');
+        onGenerate(fromScratch);
+    };
 
     // Create a portal for fullscreen mode
     const FullscreenPortal = useCallback(({ children }: { children: React.ReactNode }) => {
@@ -86,7 +93,7 @@ export function EditorPrompt({
                 </>
             ) : content}
 
-            <div className="flex gap-4">
+            <div className="flex gap-0">
                 {!hasGenerated && (
                     <Button
                         variant="ghost"
@@ -99,9 +106,9 @@ export function EditorPrompt({
                 {hasGenerated ? (
                     <>
                         <Button
-                            onClick={() => onGenerate(true)}
+                            onClick={() => handleGenerate(true)}
                             disabled={isGenerating || !isConnected || !prompt.trim()}
-                            isLoading={isGenerating}
+                            isLoading={isGenerating && activeAction === 'scratch'}
                             variant="outline"
                             className="flex-1"
                             icon={Wand2}
@@ -109,9 +116,9 @@ export function EditorPrompt({
                             BRAND NEW
                         </Button>
                         <Button
-                            onClick={() => onGenerate(false)}
+                            onClick={() => handleGenerate(false)}
                             disabled={isGenerating || !isConnected || !prompt.trim()}
-                            isLoading={isGenerating}
+                            isLoading={isGenerating && activeAction === 'refine'}
                             className="flex-1"
                             icon={Wand2}
                         >
@@ -120,7 +127,7 @@ export function EditorPrompt({
                     </>
                 ) : (
                     <Button
-                        onClick={() => onGenerate(false)}
+                        onClick={() => handleGenerate(false)}
                         disabled={isGenerating || !isConnected || !prompt.trim()}
                         isLoading={isGenerating}
                         className="flex-1"

@@ -16,7 +16,7 @@ export interface GenerationResult {
 }
 
 interface UseWidgetGenerationReturn {
-    generate: (prompt: string) => Promise<GenerationResult | null>;
+    generate: (prompt: string, contextParams?: any) => Promise<GenerationResult | null>;
     isGenerating: boolean;
     result: GenerationResult | null;
     error: string | null;
@@ -44,7 +44,7 @@ export function useWidgetGeneration(): UseWidgetGenerationReturn {
     const [result, setResult] = useState<GenerationResult | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const generate = useCallback(async (prompt: string): Promise<GenerationResult | null> => {
+    const generate = useCallback(async (prompt: string, contextParams?: any): Promise<GenerationResult | null> => {
         if (!prompt.trim()) {
             setError("Prompt is required");
             return null;
@@ -57,7 +57,7 @@ export function useWidgetGeneration(): UseWidgetGenerationReturn {
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt }),
+                body: JSON.stringify({ prompt, contextParams }),
             });
 
             if (!response.ok) {
