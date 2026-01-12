@@ -23,6 +23,10 @@
     "exclude": [
         "node_modules",
         "dist",
-        "../lib/ipfs-client.ts"
+        "../lib/ipfs-client.ts",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "test",
+        "test_*.ts"
     ]
 }
