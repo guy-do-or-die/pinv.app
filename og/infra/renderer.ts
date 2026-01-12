@@ -1,8 +1,24 @@
 import path from 'path';
 import fs from 'fs';
-import { spawn } from 'child_process';
-import { APP_URL, WORKER_TIMEOUT_MS } from '../utils/constants';
-import { logToFile } from '../utils/logger';
+import { APP_URL } from '../utils/constants';
+import { BunWorkerPool } from './pool';
+
+// Native Bun Worker Pool
+// Limit maxWorkers to avoid OOM on small instances (Fly.io).
+const MAX_WORKERS = parseInt(process.env.OG_MAX_THREADS || '2');
+const workerPath = path.join(__dirname, '../worker.js');
+
+// Ensure worker exists
+if (!fs.existsSync(workerPath)) {
+    console.error('[OG] Worker file missing:', workerPath);
+}
+
+const pool = new BunWorkerPool(workerPath, {
+    maxWorkers: MAX_WORKERS,
+    executionTimeout: 15000 // 15s timeout
+});
+
+console.log(`[Renderer] Initialized Native Worker Pool (Max Workers: ${MAX_WORKERS})`);
 
 // Helper: Stub Image
 export function getStubImage(text: string): Buffer {
@@ -15,62 +31,23 @@ export function getStubImage(text: string): Buffer {
     return Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==', 'base64');
 }
 
-// Helper: Render Image in Worker
+// Helper: Render Image (Worker Pool)
 export async function renderImageInWorker(uiCode: string, props: { [key: string]: any }, width: number, height: number): Promise<Buffer> {
-    const workerCmd = path.join(__dirname, '../worker.js');
-    const tSpawnStart = performance.now();
+    const tStart = performance.now();
 
-    // Use the same runtime that launched the server (bun)
-    const runtime = process.argv[0];
-    logToFile(`[Renderer] Spawning worker: ${runtime} ${workerCmd}`);
+    try {
+        const result = await pool.execute({
+            uiCode,
+            props,
+            width,
+            height,
+            baseUrl: APP_URL
+        });
 
-    // Safety: Verify worker exists
-    if (!fs.existsSync(workerCmd)) {
-        console.error('[OG] Worker file missing:', workerCmd);
-        throw new Error('WORKER_MISSING');
-    }
-
-    const child = spawn(runtime, [workerCmd], { stdio: ['pipe', 'pipe', 'pipe'] });
-
-    // CRITICAL: Handle spawn errors to prevent parent crash
-    child.on('error', (err) => {
-        console.error(`[OG] Worker Spawn Failed: ${err.message}`);
-    });
-
-    const inputPayload = JSON.stringify({
-        uiCode,
-        props,
-        width,
-        height,
-        baseUrl: APP_URL
-    });
-
-    child.stdin.write(inputPayload);
-    child.stdin.end();
-
-    const chunks: Buffer[] = [];
-    const errChunks: Buffer[] = [];
-    child.stdout.on('data', c => chunks.push(c));
-    child.stderr.on('data', c => errChunks.push(c));
-
-    const exitCode = await new Promise<number | null>(resolve => {
-        child.on('close', resolve);
-        setTimeout(() => { child.kill('SIGKILL'); resolve(-1); }, WORKER_TIMEOUT_MS);
-    });
-
-    console.log(`[Perf] Worker Total: ${(performance.now() - tSpawnStart).toFixed(2)}ms`);
-
-    if (errChunks.length > 0) {
-        console.error(Buffer.concat(errChunks).toString());
-    }
-
-    if (exitCode !== 0) {
-        console.error(`[OG] Worker failed: ${exitCode}`);
+        console.log(`[Perf] Render (Worker Pool): ${(performance.now() - tStart).toFixed(2)}ms`);
+        return result;
+    } catch (e) {
+        console.error(`[Renderer] Render Failed:`, e);
         throw new Error('RENDER_FAILED');
     }
-
-    const pngBuffer = Buffer.concat(chunks);
-    if (pngBuffer.length === 0) throw new Error('Empty output');
-
-    return pngBuffer;
 }
