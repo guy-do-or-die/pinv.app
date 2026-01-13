@@ -13,7 +13,7 @@ const cspConfig = {
     "data:",
     "https:",
     "http://localhost:8080",
-    "https://pintv-og.fly.dev",
+    "https://pinv-og.fly.dev",
   ],
   "font-src": ["'self'", "data:"],
   "connect-src": [
@@ -38,7 +38,7 @@ const cspConfig = {
     "https://*.pinata.cloud",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
-    "https://pintv-og.fly.dev",
+    "https://pinv-og.fly.dev",
     "https://ipfs.io",
     "https://*.ipfs.io",
     "https://dweb.link",

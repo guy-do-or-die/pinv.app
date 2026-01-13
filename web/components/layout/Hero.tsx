@@ -38,7 +38,7 @@ export default function Hero({ isLoading = false }: HeroProps) {
 
             <div className={cn("flex flex-col sm:flex-row gap-6 w-full sm:w-auto pt-4", isLoading && "opacity-50 pointer-events-none")}>
                 <MintButton disabled={isLoading} className="w-full sm:w-auto" />
-                <Link href="https://docs.pintv.app" className="w-full sm:w-auto" target="_blank">
+                <Link href="https://docs.pinv.app" className="w-full sm:w-auto" target="_blank">
                     <Button variant="outline" className="w-full sm:w-auto" icon={Info} disabled={isLoading}>
                         How it works
                     </Button>
