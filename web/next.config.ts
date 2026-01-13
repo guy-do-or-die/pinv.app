@@ -46,6 +46,7 @@ const cspConfig = {
     "https://*.ipfs.dweb.link",
     "https://*.ipfs.dweb.link",
     "https://green-impossible-swordfish-523.mypinata.cloud",
+    "https://pinv-og-staging.fly.dev",
   ],
 };
 
