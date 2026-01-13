@@ -1,5 +1,5 @@
 # fly.staging.toml - Staging Environment
-app = 'pintv-og-staging'
+app = 'pinv-og-staging'
 primary_region = 'iad'
 
 [build]
@@ -28,4 +28,9 @@ primary_region = 'iad'
     type = 'requests'
     hard_limit = 25
     soft_limit = 20
+
+[[vm]]
+  memory = '2gb'
+  cpus = 2
+  memory_mb = 2048
 
