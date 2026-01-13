@@ -3,10 +3,9 @@ FROM oven/bun:1.2.2 AS builder
 
 WORKDIR /app
 
-# Copy root config files
-COPY package.json bun.lock tsconfig.json ./
-# Install root dependencies (for shared lib/hooks)
-RUN bun install --production --ignore-scripts
+# Create minimal package.json for root dependencies (just what lib/ needs)
+RUN echo '{"name":"root-deps","private":true,"dependencies":{"viem":"^2.40.3","clsx":"^2.1.1","tailwind-merge":"^3.4.0"}}' > package.json && \
+    bun install
 
 # Copy shared code directories
 COPY lib ./lib

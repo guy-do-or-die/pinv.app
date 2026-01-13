@@ -1,6 +1,6 @@
 import { keccak256, toBytes, Hex } from 'viem';
 import { WalletClient } from 'viem';
-import { pinVConfig } from '@/hooks/contracts';
+import { pinVConfig } from '@/lib/contracts';
 import { NormalizedParams, Bundle, canonicalizeParams, computeParamsHash } from './og-common';
 
 export type { NormalizedParams, Bundle };
