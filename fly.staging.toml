@@ -9,7 +9,7 @@ primary_region = 'iad'
 [env]
   NODE_ENV = 'production' # Keep as production to mirror behavior
   PORT = '8080'
-  OG_MAX_THREADS = '1'
+  OG_MAX_THREADS = '2'
 
 [[services]]
   protocol = 'tcp'
@@ -30,6 +30,6 @@ primary_region = 'iad'
     soft_limit = 20
 
 [[vm]]
-  memory = '1gb'
-  cpus = 1
-  memory_mb = 1024
+  memory = '2gb'
+  cpus = 2
+  memory_mb = 2048
