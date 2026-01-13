@@ -41,7 +41,6 @@ export const APP_CONFIG = {
     // Used in manifest
     tags: ['farcaster', 'pins', 'social'],
     // Used in manifest for account association
-    // Used in manifest for account association
     ownerAddress: '0x906754F840Fc07676Ac9b20556a05d7200B6dE49',
     // Used in metadata for Base App identification
     baseAppId: '693666bc0443bc3eb93dbce4',
