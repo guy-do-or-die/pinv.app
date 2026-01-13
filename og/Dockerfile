@@ -20,7 +20,7 @@ COPY og ./og
 
 # Install dependencies for OG Service
 WORKDIR /app/og
-RUN bun install
+RUN bun install --concurrency 1
 
 # Build
 RUN bun run build
