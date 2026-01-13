@@ -12,7 +12,7 @@
     "deploy": "cd contracts && ./deploy.sh",
     "deploy:base-sepolia": "cd contracts && ./deploy.sh sepolia",
     "deploy:base-mainnet": "cd contracts && ./deploy.sh mainnet",
-    "vercel-build": "bun run --filter pinv-web build"
+    "vercel-build": "cd web && bun run build"
   },
   "workspaces": [
     "web",
