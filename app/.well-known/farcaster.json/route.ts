@@ -1,21 +1,19 @@
-import { NEXT_PUBLIC_APP_URL, APP_CONFIG } from '@/lib/config';
+import { APP_CONFIG, NEXT_PUBLIC_APP_URL } from '@/lib/config';
 
 export async function GET() {
     const appUrl = NEXT_PUBLIC_APP_URL;
 
-    const accountAssociation = {
-        header: process.env.FARCASTER_ASSOCIATION_HEADER || '',
-        payload: process.env.FARCASTER_ASSOCIATION_PAYLOAD || '',
-        signature: process.env.FARCASTER_ASSOCIATION_SIGNATURE || ''
-    };
-
     const manifest = {
-        accountAssociation: accountAssociation,
+        accountAssociation: {
+            header: process.env.FARCASTER_ASSOCIATION_HEADER || '',
+            payload: process.env.FARCASTER_ASSOCIATION_PAYLOAD || '',
+            signature: process.env.FARCASTER_ASSOCIATION_SIGNATURE || '',
+        },
         baseBuilder: {
-            ownerAddress: APP_CONFIG.ownerAddress
+            ownerAddress: APP_CONFIG.ownerAddress,
         },
         miniapp: {
-            version: "1",
+            version: '1',
             name: APP_CONFIG.title,
             homeUrl: appUrl,
             iconUrl: APP_CONFIG.iconUrl,
@@ -32,8 +30,8 @@ export async function GET() {
             ogTitle: APP_CONFIG.title,
             ogDescription: APP_CONFIG.description,
             ogImageUrl: APP_CONFIG.ogImageUrl,
-            noindex: true
-        }
+            noindex: false,
+        },
     };
 
     return Response.json(manifest);
