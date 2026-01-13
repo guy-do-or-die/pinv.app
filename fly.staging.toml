@@ -3,7 +3,6 @@ app = 'pinv-og-staging'
 primary_region = 'iad'
 
 [build]
-  dockerfile = 'og/Dockerfile'
   ignorefile = '.dockerignore'
 
 [env]

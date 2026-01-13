@@ -7,7 +7,6 @@ app = 'pinv-og'
 primary_region = 'iad'
 
 [build]
-  dockerfile = 'og/Dockerfile'
   ignorefile = '.dockerignore'
 
 [env]
