@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "bun --watch api/server.ts",
         "build": "tsc",
-        "start": "bun dist/api/server.js",
+        "start": "bun dist/og/api/server.js",
         "test": "vitest run tests/unit"
     },
     "dependencies": {

@@ -7,8 +7,8 @@
         "build": "next build",
         "start": "next start",
         "lint": "eslint",
-        "test": "vitest run tests/integration",
         "test:all": "vitest run",
+        "test": "vitest run tests/integration",
         "test:watch": "vitest tests/integration",
         "test:e2e": "./tests/e2e/run_full_stack.sh"
     },
@@ -61,5 +61,9 @@
         "typescript": "^5",
         "vitest": "^4.0.16",
         "wawoff2": "^2.0.1"
+    },
+    "overrides": {
+        "@types/react": "^19",
+        "@types/react-dom": "^19"
     }
 }
