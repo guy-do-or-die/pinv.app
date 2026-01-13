@@ -5,8 +5,17 @@
         "moduleResolution": "node",
         "baseUrl": ".",
         "paths": {
-            "@/*": [
-                "../*"
+            "@/lib/*": [
+                "../lib/*"
+            ],
+            "@/contracts/*": [
+                "../contracts/*"
+            ],
+            "@/types/*": [
+                "../types/*"
+            ],
+            "@/types": [
+                "../types/index.ts"
             ]
         },
         "outDir": "./dist",
@@ -18,7 +27,7 @@
     "include": [
         "**/*.ts",
         "../lib/**/*.ts",
-        "../common/**/*.ts",
+        "../contracts/**/*.ts",
         "../types/**/*.ts"
     ],
     "exclude": [

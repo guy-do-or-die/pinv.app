@@ -8,7 +8,7 @@ import TxButton from '@/components/shared/TxButton';
 import { Button } from '@/components/ui/button';
 
 import { useAccount } from '@/components/features/wallet';
-import { useSimulatePinVMint, useWritePinV, pinVAbi, useReadPinVConfig } from '@/hooks/contracts';
+import { useSimulatePinVMint, useWritePinV, pinVAbi, useReadPinVConfig } from '@/web/hooks/contracts';
 
 interface MintButtonProps {
     className?: string;

@@ -9,11 +9,10 @@ RUN echo '{"name":"root-deps","private":true,"dependencies":{"viem":"^2.40.3","c
 
 # Copy shared code directories
 COPY lib ./lib
-COPY common ./common
-COPY hooks ./hooks
+COPY contracts ./contracts
 COPY types ./types
-COPY public/fonts ./public/fonts
-COPY public/hero.png ./public/hero.png
+COPY web/public/fonts ./public/fonts
+COPY web/public/hero.png ./public/hero.png
 
 # Copy OG service
 COPY og ./og

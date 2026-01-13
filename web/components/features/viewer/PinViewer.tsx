@@ -20,7 +20,7 @@ import {
     useWritePinVSecondaryMint,
     useReadPinVStoreLatestVersion,
     useReadPinVStoreVersions,
-} from "@/hooks/contracts";
+} from "@/web/hooks/contracts";
 import TxButton from "@/components/shared/TxButton";
 import { signBundle, encodeBundle, Bundle } from "@/lib/bundle-utils";
 import { formatEther } from "viem";

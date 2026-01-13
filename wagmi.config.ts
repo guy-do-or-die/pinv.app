@@ -24,13 +24,13 @@ const foundryPlugin = foundry({
 
 export default defineConfig([
     {
-        out: 'common/contracts.ts',
+        out: 'contracts/abi.ts',
         plugins: [
             foundryPlugin
         ],
     },
     {
-        out: 'hooks/contracts.ts',
+        out: 'web/hooks/contracts.ts',
         plugins: [
             react(),
             foundryPlugin

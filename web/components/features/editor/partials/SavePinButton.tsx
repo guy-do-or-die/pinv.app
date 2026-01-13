@@ -11,7 +11,7 @@ import {
     useWritePinVStoreUpdateMetadata,
     useReadPinVPinStores,
     useWritePinVStoreAddVersion,
-} from "@/hooks/contracts";
+} from "@/web/hooks/contracts";
 import { notify } from "@/components/shared/Notifications";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { useConfig } from "wagmi";
