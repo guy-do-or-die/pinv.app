@@ -9,6 +9,7 @@ RUN echo '{"name":"root-deps","private":true,"dependencies":{"viem":"^2.40.3","c
 
 # Copy shared code directories
 COPY lib ./lib
+COPY common ./common
 COPY hooks ./hooks
 COPY types ./types
 COPY public/fonts ./public/fonts

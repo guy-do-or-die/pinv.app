@@ -18,12 +18,15 @@
     "include": [
         "**/*.ts",
         "../lib/**/*.ts",
+        "../common/**/*.ts",
         "../types/**/*.ts"
     ],
     "exclude": [
         "node_modules",
         "dist",
         "../lib/ipfs-client.ts",
+        "../lib/server",
+        "../lib/metadata.ts",
         "**/*.test.ts",
         "**/*.spec.ts",
         "test",
