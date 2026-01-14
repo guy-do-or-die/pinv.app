@@ -1,13 +1,14 @@
 import { createPublicClient, http } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { pinVConfig } from '../utils/contracts';
+import { env } from '../utils/env';
 
-const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '84532');
+const CHAIN_ID = env.NEXT_PUBLIC_CHAIN_ID;
 const CHAIN = CHAIN_ID === 8453 ? base : baseSepolia;
 
 const client = createPublicClient({
     chain: CHAIN,
-    transport: http(process.env.RPC_URL)
+    transport: http(env.RPC_URL)
 });
 
 export async function checkOwnership(address: string, tokenId: number): Promise<boolean> {

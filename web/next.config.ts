@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+import { env } from "./env";
+
 const cspConfig = {
   "default-src": ["'self'"],
   // 'unsafe-eval' is often required by Web3 libraries.
@@ -79,7 +81,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/og/:path*",
-        destination: `${process.env.NEXT_PUBLIC_OG_ENGINE_URL || "http://localhost:8080"}/og/:path*`,
+        destination: `${env.NEXT_PUBLIC_OG_ENGINE_URL}/og/:path*`,
       },
     ];
   },

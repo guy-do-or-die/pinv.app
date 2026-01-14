@@ -1,9 +1,15 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import { PORT, CHAIN_ID, CONTRACT_ADDRESS } from '../utils/constants';
+import { env } from '../utils/env';
+import { logEnv } from '@/lib/env-logger';
+
 import { previewHandler, getPinHandler } from './controllers';
 
 import { logToFile } from '../utils/logger';
+
+
+logEnv(env, "OG SERVICE");
 
 const server = fastify({
     logger: true,
@@ -46,7 +52,7 @@ process.on('uncaughtException', (err) => {
 const start = async () => {
     try {
         await server.listen({ port: PORT, host: '0.0.0.0' });
-        const msg = `Server listening on port ${PORT} | IPFS: ${process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'Default'}`;
+        const msg = `Server listening on port ${PORT} | IPFS: ${env.NEXT_PUBLIC_IPFS_GATEWAY}`;
         console.log(msg);
         logToFile(msg);
     } catch (err) {
@@ -78,7 +84,7 @@ server.get('/health', async () => ({ status: 'ok' }));
 console.log(`[OG Engine] Starting on Port: ${PORT}`);
 console.log(`[OG Engine] Chain ID: ${CHAIN_ID}`);
 console.log(`[OG Engine] Contract Address: ${CONTRACT_ADDRESS}`);
-console.log(`[OG Engine] IPFS Gateway: ${process.env.NEXT_PUBLIC_IPFS_GATEWAY || '(Using Default)'}`);
+console.log(`[OG Engine] IPFS Gateway: ${env.NEXT_PUBLIC_IPFS_GATEWAY}`);
 console.log('------------------------------------------------');
 
 start();

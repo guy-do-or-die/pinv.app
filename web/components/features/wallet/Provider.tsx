@@ -9,13 +9,19 @@ import * as chains from 'wagmi/chains'
 import { OnchainKitProvider } from '@coinbase/onchainkit'
 import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector'
 
+import { env } from '@/env';
+
 export const supportedChains = {
     main: chains.base,
     test: chains.baseSepolia,
     local: chains.foundry,
 }
 
-const envChainKey = (process.env.NEXT_PUBLIC_CHAIN || 'test').toLowerCase()
+const envChainKey = (env.NEXT_PUBLIC_CHAIN || 'test').toLowerCase()
+if (envChainKey !== 'test' && envChainKey !== 'mainnet') {
+    throw new Error(`Invalid chain env: ${envChainKey}`);
+}
+
 export const chain = supportedChains[envChainKey as keyof typeof supportedChains] || supportedChains.test
 
 declare module 'wagmi' {
@@ -57,7 +63,7 @@ export default function WalletProvider({ children }: { children: ReactNode }) {
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
-                <OnchainKitProvider apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY} chain={chain}>
+                <OnchainKitProvider apiKey={env.NEXT_PUBLIC_ONCHAINKIT_API_KEY} chain={chain}>
                     <>{children}</>
                 </OnchainKitProvider>
             </QueryClientProvider>

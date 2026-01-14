@@ -1,20 +1,21 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const LOG_FILE = path.join(__dirname, '../debug.log');
 
-export function logToFile(msg: string) {
-    // In Production, verify we don't block the Event Loop with Sync I/O
-    if (process.env.NODE_ENV === 'production') {
-        console.log(msg);
-        return;
-    }
+import { env } from './env';
 
-    const timestamp = new Date().toISOString();
-    const line = `[${timestamp}] ${msg}\n`;
-    try {
-        fs.appendFileSync(LOG_FILE, line);
-    } catch (e) {
-        console.error('Failed to log to file:', e);
+export function logToFile(msg: string) {
+    // Only log to file in production/staging to avoid clutter in dev
+    if (env.NODE_ENV === 'production') {
+        const timestamp = new Date().toISOString();
+        const logLine = `[${timestamp}] ${msg}\n`;
+        fs.appendFile(LOG_FILE, logLine, (err) => {
+            if (err) console.error('Failed to write to log file:', err);
+        });
     }
 }

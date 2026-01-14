@@ -1,14 +1,15 @@
 import { Hex, keccak256, toBytes } from 'viem';
 import { pinVConfig } from './contracts';
+import { env } from './env';
 
 import { Bundle, computeParamsHash } from '../../lib/og-common';
 
-const SIGNED_TS_MAX_AGE_SEC = parseInt(process.env.SIGNED_TS_MAX_AGE_SEC || '86400');
-const SIGNED_TS_FUTURE_SKEW_SEC = parseInt(process.env.SIGNED_TS_FUTURE_SKEW_SEC || '600');
+const SIGNED_TS_MAX_AGE_SEC = env.SIGNED_TS_MAX_AGE_SEC;
+const SIGNED_TS_FUTURE_SKEW_SEC = env.SIGNED_TS_FUTURE_SKEW_SEC;
 
 // Use contract address as verifying contract
-const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '84532');
-const CONTRACT_ADDRESS = pinVConfig.address[CHAIN_ID as 8453 | 84532] as `0x${string}`;
+const CHAIN_ID = env.NEXT_PUBLIC_CHAIN_ID as 8453 | 84532 | 31337;
+const CONTRACT_ADDRESS = pinVConfig.address[CHAIN_ID] as `0x${string}`;
 
 const domain = {
     name: 'PinV',

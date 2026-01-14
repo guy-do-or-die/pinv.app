@@ -1,5 +1,7 @@
 "use client";
 
+import { env } from "@/env";
+
 import { useState, useEffect, useRef } from "react";
 import { Pin } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -68,7 +70,9 @@ export default function PinViewer({ pin, pinId, initialParams }: PinViewerProps)
     const [shareUrl, setShareUrl] = useState('');
 
     const shareText = APP_CONFIG.shareText || `Here’s my PinV 👇`;
-    const chainId = process.env.NEXT_PUBLIC_CHAIN_ID === '8453' ? 8453 : 84532;
+    // Force Chain ID to Base Mainnet if PROD is implied, otherwise Base Sepolia
+    const chainId = env.NEXT_PUBLIC_CHAIN_ID === 8453 ? 8453 : 84532;
+
 
     // --- Contract Reads ---
     const { data: storeAddress } = useReadPinVPinStores({

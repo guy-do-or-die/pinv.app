@@ -33,7 +33,6 @@ export function EditorPreview({
                 description={null}
                 imageSrc={previewImageUrl}
                 isLoading={isLoading}
-
                 className="h-fit border-none shadow-none bg-transparent"
             >
                 <div className={cn(

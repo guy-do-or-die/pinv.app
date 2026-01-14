@@ -29,6 +29,10 @@
   },
   "overrides": {
     "@types/react": "^19",
-    "@types/react-dom": "^19"
+    "@types/react-dom": "^19",
+    "tr46": "^1.0.1"
+  },
+  "patchedDependencies": {
+    "@lit-protocol/constants@7.4.0": "patches/@lit-protocol%2Fconstants@7.4.0.patch"
   }
 }
