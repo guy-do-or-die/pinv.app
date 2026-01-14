@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GENERATION_SYSTEM_PROMPT } from '@/lib/prompts';
 import { NEXT_PUBLIC_APP_URL } from '@/lib/config';
+import { env } from "@/env";
 
 async function generateText(
     model: string,
@@ -59,9 +60,8 @@ export async function POST(req: Request) {
             ${JSON.stringify(contextParams, null, 2)}
         `;
 
-        // Default to Claude 3.5 Sonnet if not specified
-        const model = process.env.LLM_MODEL || "anthropic/claude-3.5-sonnet";
-        const apiKey = process.env.OPENROUTER_API_KEY;
+        const model = env.LLM_MODEL;
+        const apiKey = env.OPENROUTER_API_KEY;
 
         if (!apiKey) {
             // Fallback to legacy keys if OpenRouter key is missing (backward compatibility)

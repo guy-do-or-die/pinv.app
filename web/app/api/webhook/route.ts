@@ -1,21 +1,42 @@
-import { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withAxiom, AxiomRequest } from 'next-axiom';
+import { createVerifyAppKeyWithHub, parseWebhookEvent } from '@farcaster/miniapp-node';
 
-export async function POST(req: NextRequest) {
+export const POST = withAxiom(async (req: AxiomRequest) => {
     try {
         const body = await req.json();
 
-        // Log the webhook event for low-overhead analytics/debugging
-        console.log('[MiniApp Webhook] Received event:', JSON.stringify(body, null, 2));
+        // Use standard Farcaster public Hub (free) for verification
+        const HUB_URL = 'https://nemes.farcaster.xyz:2281';
+        const verifyAppKey = createVerifyAppKeyWithHub(HUB_URL);
 
-        // TODO: Verify signature header from Base/Farcaster if required in future
-        // const signature = req.headers.get('x-farcaster-signature');
+        try {
+            await parseWebhookEvent(body, verifyAppKey);
+        } catch (err) {
+            console.error('[MiniApp Webhook] Verification failed:', err);
+            // Don't log to Axiom on verification failure to avoid spam/DoS costs
+            return NextResponse.json({ error: 'Invalid signature or app key' }, { status: 401 });
+        }
 
-        // Identify event type (if applicable structure exists)
-        // For now, we just acknowledge receipt to avoid retries
+        // Log the validated event to Axiom for analytics/storage 
+        const fid = body.fid || body.untrustedData?.fid || 'unknown';
+        const timestamp = body.timestamp || Date.now();
+        const eventId = `pinv:webhook:${fid}:${timestamp}`;
 
-        return Response.json({ success: true, message: 'Event received' });
+        req.log.info('MiniApp Webhook Received', {
+            eventId,
+            fid,
+            timestamp,
+            eventType: body.event || 'unknown',
+            payload: body
+        });
+
+        // withAxiom automatically flushes logs after the handler returns
+        console.log(`[MiniApp Webhook] Ingested event ${eventId} to Axiom`);
+        return NextResponse.json({ success: true, message: 'Event ingested' });
     } catch (error) {
         console.error('[MiniApp Webhook] Error processing request:', error);
-        return Response.json({ error: 'Invalid request body' }, { status: 400 });
+        req.log.error('MiniApp Webhook Server Error', { error: String(error) });
+        return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
-}
+});

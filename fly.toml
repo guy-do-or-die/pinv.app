@@ -32,6 +32,11 @@ primary_region = 'iad'
     hard_limit = 25
     soft_limit = 20
 
+[[vm]]
+  memory = '2gb'
+  cpus = 2
+  memory_mb = 2048
+
 
 
 

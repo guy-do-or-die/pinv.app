@@ -1,10 +1,11 @@
 "use server";
 
 import { PinataSDK } from "pinata";
+import { env } from "@/env";
 
 const pinata = new PinataSDK({
-    pinataJwt: process.env.PINATA_JWT!,
-    pinataGateway: process.env.NEXT_PUBLIC_IPFS_GATEWAY,
+    pinataJwt: env.PINATA_JWT,
+    pinataGateway: env.NEXT_PUBLIC_IPFS_GATEWAY,
 });
 
 export async function getPinataUploadUrl() {

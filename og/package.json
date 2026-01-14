@@ -2,19 +2,23 @@
     "name": "pinv-og",
     "version": "1.0.0",
     "description": "Secure OG rendering service",
+    "type": "module",
     "main": "dist/api/server.js",
     "scripts": {
-        "dev": "bun --watch api/server.ts",
-        "build": "tsc",
+        "dev": "dotenvx run -f ../.env -f ../.env.local -- bun --watch api/server.ts",
+        "build": "bun build ./api/server.ts --outdir ./dist --target node",
         "start": "bun dist/og/api/server.js",
         "test": "vitest run tests/unit"
     },
     "dependencies": {
+        "@dotenvx/dotenvx": "^1.51.4",
         "@fastify/cors": "^11.2.0",
         "@lit-protocol/auth-helpers": "^8.2.0",
         "@lit-protocol/constants": "^9.0.0",
         "@lit-protocol/lit-node-client": "^7.4.0",
         "@resvg/resvg-js": "latest",
+        "@t3-oss/env-core": "^0.13.10",
+        "@walletconnect/modal": "^2.7.0",
         "dotenv": "^16.4.5",
         "emoji-regex": "^10.6.0",
         "ethers": "^6.16.0",
@@ -26,7 +30,8 @@
         "satori": "latest",
         "siwe": "^3.0.0",
         "sucrase": "^3.35.0",
-        "viem": "^2.7.1"
+        "viem": "^2.7.1",
+        "zod": "^4.3.5"
     },
     "devDependencies": {
         "@types/node": "^20.11.24",

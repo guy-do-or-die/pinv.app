@@ -1,11 +1,16 @@
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { APP_URL } from '../utils/constants';
+import { env } from '../utils/env';
 import { BunWorkerPool } from './pool';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Native Bun Worker Pool
 // Limit maxWorkers to avoid OOM on small instances (Fly.io).
-const MAX_WORKERS = parseInt(process.env.OG_MAX_THREADS || '2');
+const MAX_WORKERS = env.OG_MAX_THREADS;
 
 // Resolve worker path (prefer .ts for Bun Dev, .js for Prod)
 const workerTs = path.join(__dirname, '../worker.ts');

@@ -1,15 +1,16 @@
 import { createPublicClient, http, zeroAddress } from 'viem';
-import { baseSepolia, base, foundry } from 'viem/chains';
+import { baseSepolia, base } from 'viem/chains';
 import { pinVConfig, pinVStoreAbi } from '../utils/contracts';
 import { fetchIpfsJson } from './ipfs';
 import { Pin } from '../../types';
+import { env } from '../utils/env';
 
-const chainId = process.env.NEXT_PUBLIC_CHAIN_ID || '84532';
-const chain = chainId === '8453' ? base : (chainId === '31337' ? foundry : baseSepolia);
-const publicClient = createPublicClient({
-    batch: { multicall: true },
+const chainId = env.NEXT_PUBLIC_CHAIN_ID;
+const chain = chainId === 8453 ? base : baseSepolia;
+
+export const publicClient = createPublicClient({
     chain,
-    transport: http(process.env.RPC_URL)
+    transport: http(env.RPC_URL)
 });
 
 // Simple LRU Cache

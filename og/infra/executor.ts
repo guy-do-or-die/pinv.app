@@ -5,14 +5,15 @@ import { NormalizedParams } from '../../lib/og-common';
 import { LitNodeClient } from '@lit-protocol/lit-node-client';
 import { LitActionResource, createSiweMessage } from '@lit-protocol/auth-helpers';
 import { ethers } from 'ethers';
+import { env } from '../utils/env';
 
 // Global client instance to avoid reconnecting on every request
 let litClient: LitNodeClient | null = null;
 let litWallet: ethers.Wallet | null = null;
 let initPromise: Promise<LitNodeClient> | null = null;
 
-const NETWORK = process.env.LIT_NETWORK || 'datil-dev';
-const DEBUG = process.env.LIT_DEBUG === 'true';
+const NETWORK = env.LIT_NETWORK;
+const DEBUG = env.LIT_DEBUG;
 
 async function getLitClient() {
     if (litClient && litWallet) return litClient;
