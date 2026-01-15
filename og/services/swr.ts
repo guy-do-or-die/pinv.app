@@ -142,8 +142,12 @@ export async function serveWithSWR({ pinId, cacheKey, lockKey, generatorFn, repl
         return reply.send(freshBuffer);
 
     } catch (e: any) {
-        logToFile(`[SWR] Error: ${e.message}`);
-        console.error(e);
+        if (e.message !== 'NO_UI_CODE') {
+            logToFile(`[SWR] Error: ${e.message}`);
+            console.error(e);
+        } else {
+            logToFile(`[SWR] Handled Soft Failure: ${e.message}`);
+        }
 
         if (redis.status === 'ready') {
             await redis.del(lockKey).catch(() => { });
@@ -153,7 +157,7 @@ export async function serveWithSWR({ pinId, cacheKey, lockKey, generatorFn, repl
             return reply.code(404).type('image/png').send(getStubImage('Not Found'));
         }
         if (e.message === 'NO_UI_CODE') {
-            return reply.code(422).type('image/png').send(getStubImage('No Code'));
+            return reply.code(200).type('image/png').send(getStubImage('No Code'));
         }
         if (e.message === 'RENDER_FAILED') {
             return reply.code(500).type('image/png').send(getStubImage('Render Error'));

@@ -124,4 +124,26 @@ describe('SWR Service', () => {
         expect(mockRedis.del).toHaveBeenCalled();
         expect(mockRedis.set).toHaveBeenCalled();
     });
+
+    it('should serve Stub Image with 200 OK on NO_UI_CODE (Soft Failure)', async () => {
+        // Setup Soft Failure
+        mockGenerator.mockRejectedValue(new Error('NO_UI_CODE'));
+
+        await serveWithSWR({
+            pinId: 1,
+            cacheKey: 'test-key',
+            lockKey: 'test-lock',
+            generatorFn: mockGenerator,
+            reply: mockReply,
+            forceRefresh: false,
+            isBundle: false
+        });
+
+        // Verify: Status 200 (Success for Stub)
+        expect(mockReply.code).toHaveBeenCalledWith(200);
+        expect(mockReply.type).toHaveBeenCalledWith('image/png');
+
+        // Verify: Sent a buffer (Stub)
+        expect(mockReply.send).toHaveBeenCalledWith(expect.any(Buffer));
+    });
 });

@@ -66,21 +66,13 @@ export async function getPinHandler(request: FastifyRequest<{
     };
 
     // 4. Serve
-    // 4. Serve
-    try {
-        return await serveWithSWR({
-            pinId,
-            cacheKey,
-            lockKey,
-            generatorFn,
-            reply,
-            forceRefresh: !!request.query.t,
-            isBundle: !!ctx.authorizedBundle
-        });
-    } catch (e: any) {
-        if (e.message === 'NO_UI_CODE') {
-            return reply.code(404).send('Pin content not found (IPFS missing).');
-        }
-        throw e;
-    }
+    return await serveWithSWR({
+        pinId,
+        cacheKey,
+        lockKey,
+        generatorFn,
+        reply,
+        forceRefresh: !!request.query.t,
+        isBundle: !!ctx.authorizedBundle
+    });
 }
