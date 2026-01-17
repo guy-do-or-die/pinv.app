@@ -59,8 +59,8 @@ export async function generateOgImage(pinId: number, queryParams: Record<string,
             // This ensures hidden secrets (like API keys) defined in 'previewData' but not sent by the client are preserved.
             const paramsToRun = { ...defaultParams, ...authorizedBundle.params, ...overrides };
 
-            if (dataCode) {
-                const { result } = await executeLitAction(dataCode, paramsToRun);
+            if (dataCode || pin.widget?.litActionCid) {
+                const { result } = await executeLitAction(dataCode, pin.widget?.litActionCid, paramsToRun);
                 if (result) baseProps = { ...baseProps, ...result };
             } else {
                 baseProps = { ...baseProps, ...paramsToRun };
@@ -70,9 +70,10 @@ export async function generateOgImage(pinId: number, queryParams: Record<string,
         const dataCode = pin.widget?.dataCode;
         const storedParams = pin.widget?.previewData || {};
         const paramsToRun = { ...storedParams, ...overrides };
-        if (dataCode) {
+
+        if (dataCode || pin.widget?.litActionCid) {
             const tExecStart = performance.now();
-            const { result } = await executeLitAction(dataCode, paramsToRun);
+            const { result } = await executeLitAction(dataCode, pin.widget?.litActionCid, paramsToRun);
             console.log(`[Perf] Lit Action: ${(performance.now() - tExecStart).toFixed(2)}ms`);
             if (result) baseProps = { ...baseProps, ...result };
         } else {

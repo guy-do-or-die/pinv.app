@@ -3,6 +3,20 @@ export interface NormalizedParams {
     [key: string]: string;
 }
 
+export interface EncryptedParam {
+    ciphertext: string;
+    dataToEncryptHash: string;
+    accessControlConditions: any[];
+}
+
+export function isEncryptedParam(val: any): val is EncryptedParam {
+    return val &&
+        typeof val === 'object' &&
+        typeof val.ciphertext === 'string' &&
+        typeof val.dataToEncryptHash === 'string' &&
+        Array.isArray(val.accessControlConditions);
+}
+
 export interface Bundle {
     ver?: string; // manifest CID
     params?: NormalizedParams;

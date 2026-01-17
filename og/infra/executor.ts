@@ -3,7 +3,7 @@
 
 import { NormalizedParams } from '../../lib/og-common';
 import { LitNodeClient } from '@lit-protocol/lit-node-client';
-import { LitActionResource, createSiweMessage } from '@lit-protocol/auth-helpers';
+import { LitActionResource, LitAccessControlConditionResource, createSiweMessage } from '@lit-protocol/auth-helpers';
 import { ethers } from 'ethers';
 import { env } from '../utils/env';
 
@@ -75,6 +75,10 @@ async function getGlobalSession(client: LitNodeClient) {
                 resource: new LitActionResource('*') as any,
                 ability: 'lit-action-execution' as any,
             },
+            {
+                resource: new LitAccessControlConditionResource('*') as any,
+                ability: 'access-control-condition-decryption' as any,
+            },
         ],
         authNeededCallback: async ({
             uri,
@@ -106,10 +110,11 @@ async function getGlobalSession(client: LitNodeClient) {
 }
 
 export async function executeLitAction(
-    code: string,
+    code: string | undefined,
+    ipfsId: string | undefined,
     params: NormalizedParams
 ): Promise<{ result: Record<string, unknown> | null, logs: string[] }> {
-    if (!code || !code.trim()) return { result: {}, logs: [] };
+    if ((!code || !code.trim()) && !ipfsId) return { result: {}, logs: [] };
 
     const logs: string[] = [];
 
@@ -139,10 +144,20 @@ export async function executeLitAction(
         // Execute on Lit Network
         // Nest params under 'jsParams' so it appears as a global variable in Lit Action
         // This matches the AI generator pattern: const main = async (jsParams) => ...
-        const litParams = { jsParams: params };
+        const litParams = { jsParams: jsParams };
 
-        // Append runner to call 'main' and handling response
-        const wrappedCode = `
+        let res;
+
+        if (ipfsId) {
+            console.log(`[Executor] Executing via IPFS ID: ${ipfsId}`);
+            res = await client.executeJs({
+                ipfsId,
+                jsParams: litParams,
+                sessionSigs
+            });
+        } else {
+            // Append runner to call 'main' and handling response
+            const wrappedCode = `
 ${code}
 
 if (typeof main === 'function') {
@@ -154,15 +169,13 @@ if (typeof main === 'function') {
   });
 }
 `;
-
-        console.log(`[Executor] Executing wrapped code...`);
-        // console.log(wrappedCode); 
-
-        const res = await client.executeJs({
-            code: wrappedCode,
-            jsParams: litParams,
-            sessionSigs
-        });
+            console.log(`[Executor] Executing wrapped code...`);
+            res = await client.executeJs({
+                code: wrappedCode,
+                jsParams: litParams,
+                sessionSigs
+            });
+        }
 
         console.log('[Executor] Raw Lit Response:', JSON.stringify(res, null, 2));
 

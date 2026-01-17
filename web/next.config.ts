@@ -20,6 +20,7 @@ const cspConfig = {
   "font-src": ["'self'", "data:"],
   "connect-src": [
     "'self'",
+    "https:",
     "https://explorer-api.walletconnect.com",
     "https://farcaster.xyz",
     "https://client.farcaster.xyz",
@@ -49,6 +50,8 @@ const cspConfig = {
     "https://*.ipfs.dweb.link",
     "https://*.ipfs.dweb.link",
     "https://green-impossible-swordfish-523.mypinata.cloud",
+    "https://*.litprotocol.com",
+    "wss://*.litprotocol.com",
   ],
 };
 

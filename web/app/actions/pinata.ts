@@ -13,6 +13,8 @@ export async function getPinataUploadUrl() {
         const url = await pinata.upload.public.createSignedURL({
             expires: 120, // 2 minutes
             maxFileSize: 10 * 1024 * 1024, // 10MB
+            // @ts-ignore - Ensure consistency with client-side wrapping
+            wrapWithDirectory: true,
         });
 
         return { url };

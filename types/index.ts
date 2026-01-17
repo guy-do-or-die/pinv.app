@@ -6,6 +6,7 @@ export interface Widget {
   userConfig?: Record<string, string>;
   signature?: string;
   timestamp?: number;
+  litActionCid?: string;
 }
 
 export interface Pin {
@@ -23,5 +24,6 @@ export interface Pin {
     userConfig?: Record<string, string>;
     signature?: string;
     timestamp?: number;
+    litActionCid?: string;
   };
 }

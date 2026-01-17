@@ -11,13 +11,13 @@ import { OG_WIDTH, OG_HEIGHT } from '../utils/constants';
 
 export async function previewHandler(req: FastifyRequest, reply: FastifyReply) {
     try {
-        const { dataCode, uiCode, params } = req.body as { dataCode?: string, uiCode?: string, params?: any };
+        const { dataCode, uiCode, params, litActionCid } = req.body as { dataCode?: string, uiCode?: string, params?: any, litActionCid?: string };
 
         let result = {};
         let logs: string[] = [];
 
-        if (dataCode) {
-            const execRes = await executeLitAction(dataCode, params || {});
+        if (dataCode || litActionCid) {
+            const execRes = await executeLitAction(dataCode, litActionCid, params || {});
             result = execRes.result || {};
             logs = execRes.logs || [];
         } else {

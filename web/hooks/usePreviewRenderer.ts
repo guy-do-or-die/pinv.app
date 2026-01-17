@@ -4,7 +4,10 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useWalletClient, useAccount, useChainId } from "wagmi";
 import { encodeBundle, signBundle, Bundle } from "@/lib/bundle-utils";
 
+import { uploadLitAction } from "@/app/actions/upload-lit-action";
 import { uploadToIpfs } from "@/lib/ipfs-client";
+import { prepareAndPinLitAction } from "@/lib/pin-lit-action";
+import { encryptParam } from "@/lib/lit-client";
 
 interface ManifestData {
     title?: string;
@@ -14,6 +17,7 @@ interface ManifestData {
     previewData: any;
     parameters: any[];
     userConfig?: any;
+    litActionCid?: string | null;
 }
 
 interface UsePreviewRendererReturn {
@@ -57,20 +61,57 @@ export function usePreviewRenderer(): UsePreviewRendererReturn {
         try {
             // 1. Bake current values into Parameters defaults
             // This ensures that the manifest we upload has the "current" values as the new defaults
+            // 1a. Handle Private Parameters & Lit Action Pinning
+            // We treat parameters as private strictly if they have the 'hidden' flag set to true.
+            const privateParams = (data.parameters || []).filter(p => p.hidden === true);
+            let litActionCid = data.litActionCid;
+            let currentPreviewData = { ...data.previewData };
+
+            if (privateParams.length > 0) {
+                // Convert 'null' to undefined if needed, or check validity.
+                // We simply repin for now to ensure code matches.
+                // Optimization: We could hash dataCode and compare?
+                // Pin the code (which might have changed)
+                // SECURITY: convert encrypted params to access control conditions
+
+                // We pass the server action as a callback to allow the shared library to be pure
+                litActionCid = await prepareAndPinLitAction(data.dataCode, uploadLitAction);
+
+                // Encrypt Secrets
+                for (const p of privateParams) {
+                    const val = currentPreviewData[p.name];
+                    // Only encrypt if it's a string (plaintext) and not already encrypted?
+                    // How do we know if it's already encrypted? Check structure?
+                    // Simple check: if String, encrypt.
+                    if (val && typeof val === 'string') {
+                        const encrypted = await encryptParam(val, litActionCid, address);
+                        currentPreviewData[p.name] = encrypted;
+                    }
+                }
+            }
+
+            // 1b. Bake current values into Parameters defaults
+            // This ensures that the manifest we upload has the "current" values as the new defaults
             const bakedParameters = (data.parameters || []).map(p => {
-                if (data.previewData && data.previewData[p.name] !== undefined) {
+                const val = currentPreviewData[p.name];
+                if (val !== undefined) {
                     return {
                         ...p,
-                        default: data.previewData[p.name],
-                        defaultValue: data.previewData[p.name] // Support both for safety
+                        default: val,
+                        defaultValue: val // Support both for safety
                     };
                 }
                 return p;
             });
 
+            // Update previewData with the potentially encrypted values so the Bundle gets them too?
+            // Yes, the Bundle should contain the encrypted values so the OG engine receives them.
+
             const bakedData = {
                 ...data,
-                parameters: bakedParameters
+                litActionCid, // Include the CID in the manifest
+                parameters: bakedParameters,
+                previewData: currentPreviewData
             };
 
             // 2. Upload to Pinata via Shared Utility
@@ -84,7 +125,7 @@ export function usePreviewRenderer(): UsePreviewRendererReturn {
             // 3. Create Bundle
             const bundle: Bundle = {
                 ver: cid,
-                params: data.previewData || {},
+                params: currentPreviewData || {}, // Use the encrypted data
                 ts: Math.floor(Date.now() / 1000)
             };
 

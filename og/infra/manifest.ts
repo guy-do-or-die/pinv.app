@@ -27,7 +27,8 @@ export async function getManifest(ver: string) {
                 uiCode: data.uiCode || '',
                 previewData: data.previewData || {},
                 parameters: data.parameters || [],
-                userConfig: data.userConfig || {}
+                userConfig: data.userConfig || {},
+                litActionCid: data.litActionCid || null // [New] Support for offloaded Lit Action logic
             };
 
             // Store Cache

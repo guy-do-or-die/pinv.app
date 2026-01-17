@@ -3,6 +3,7 @@ import { getPinataUploadUrl } from "@/app/actions/pinata";
 /**
  * Uploads data to IPFS via a Signed URL (Client-Side).
  * This replaces the server-side proxy to avoid Vercel timeouts on large files.
+ * Returns the CID provided by Pinata (usually CIDv1).
  */
 export async function uploadToIpfs(data: any, filename = 'file.json'): Promise<string> {
     try {
@@ -11,14 +12,25 @@ export async function uploadToIpfs(data: any, filename = 'file.json'): Promise<s
 
         // 2. Prepare content
         let blob: Blob;
-        if (typeof data === 'string') {
+
+        if (data instanceof Blob) {
+            blob = data;
+        } else if (typeof data === 'string') {
             blob = new Blob([data], { type: 'text/plain' });
         } else {
-            blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            const jsonString = JSON.stringify(data);
+            blob = new Blob([jsonString], { type: 'application/json' });
         }
 
         const file = new File([blob], filename, { type: blob.type });
         const formData = new FormData();
+
+        // Metadata for Pinata Explorer
+        const pinataMetadata = JSON.stringify({
+            name: filename
+        });
+        formData.append('pinataMetadata', pinataMetadata);
+
         formData.append("file", file);
 
         // 3. Upload directly to Pinata
@@ -32,11 +44,14 @@ export async function uploadToIpfs(data: any, filename = 'file.json'): Promise<s
         }
 
         const uploadData = await uploadRes.json();
-        const cid = uploadData?.data?.cid || uploadData?.IpfsHash;
+        console.log("Pinata Upload Response:", uploadData);
 
-        if (!cid) throw new Error("No CID returned from upload");
+        const pinataCid = uploadData?.IpfsHash || uploadData?.data?.cid;
+        console.log(`Pinata Returned CID: ${pinataCid}`);
 
-        return cid;
+        if (!pinataCid) throw new Error("No CID returned from upload");
+
+        return pinataCid;
 
     } catch (error) {
         console.error('Error uploading to IPFS:', error);
