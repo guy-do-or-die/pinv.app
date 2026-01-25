@@ -1,6 +1,6 @@
 {
   "name": "pinv-box",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "type": "module",
   "scripts": {
     "dev": "node --no-node-snapshot --import tsx src/index.ts",

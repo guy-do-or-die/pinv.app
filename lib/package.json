@@ -1,0 +1,5 @@
+{
+    "name": "@pinv/lib",
+    "private": true,
+    "type": "module"
+}

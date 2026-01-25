@@ -48,6 +48,7 @@ COPY --from=prerelease /app/box/src box/src
 COPY --from=prerelease /app/box/package.json box/
 COPY --from=prerelease /app/lib lib
 
+
 # WORKDIR stays at /app (Root)
 WORKDIR /app
 
