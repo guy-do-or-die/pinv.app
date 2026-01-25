@@ -17,7 +17,7 @@
   "dependencies": {
     "@phala/dstack-sdk": "^0.5.7",
     "eciesjs": "^0.4.6",
-    "isolated-vm": "^5.0.0",
+    "isolated-vm": "^6.0.2",
     "hono": "^4.0.0",
     "@hono/node-server": "^1.11.0",
     "pino": "^10.3.0",

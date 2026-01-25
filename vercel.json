@@ -1,6 +1,6 @@
 {
     "framework": "nextjs",
-    "buildCommand": "cd web && bun run build",
     "outputDirectory": "web/.next",
+    "buildCommand": "cd web && bun run build",
     "installCommand": "cd web && bun install"
 }
