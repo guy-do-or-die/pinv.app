@@ -1,5 +1,6 @@
 import { config } from "./config.js";
-import { logger, metrics } from "./telemetry.js";
+import { logger } from "./logger.js";
+import { metrics } from "./metrics.js";
 import { AppError, ErrorCodes } from "./errors.js";
 
 import ivm from "./sandbox/ivm.js";
@@ -38,6 +39,7 @@ export class IsolatePool {
 
             this.isReady = true;
             metrics.poolSize.set(config.poolSize); // Total provisioned capacity
+            this.updatePoolSizeMetric();
             logger.info({ size: this.pool.length }, "[IsolatePool] Initialized and warmed up.");
         } catch (e) {
             logger.error({ err: e }, "[IsolatePool] Critical: Failed to warm up isolates.");
@@ -82,7 +84,7 @@ export class IsolatePool {
             if (wrapper && !wrapper.isolate.isDisposed) {
                 this.currentActive++;
                 metrics.activeIsolates.set(this.currentActive);
-                metrics.poolSize.set(this.pool.length);
+                this.updatePoolSizeMetric();
                 metrics.poolAcquireDuration.observe((Date.now() - startTime) / 1000);
                 return wrapper;
             } else if (wrapper) {
@@ -97,6 +99,7 @@ export class IsolatePool {
             if (wrapper) {
                 this.currentActive++;
                 metrics.activeIsolates.set(this.currentActive);
+                this.updatePoolSizeMetric();
                 metrics.poolAcquireDuration.observe((Date.now() - startTime) / 1000);
                 return wrapper;
             }
@@ -142,6 +145,7 @@ export class IsolatePool {
     async release(wrapper: IsolateWrapper, poisonReason?: string) {
         this.currentActive--;
         metrics.activeIsolates.set(this.currentActive);
+        this.updatePoolSizeMetric();
 
         wrapper.runs++;
 
@@ -195,9 +199,13 @@ export class IsolatePool {
         } else {
             if (this.pool.length < config.poolSize) {
                 this.pool.push(wrapper);
+                this.updatePoolSizeMetric();
             } else {
                 this.safeDispose(wrapper, 'pool_full');
             }
         }
+    }
+    private updatePoolSizeMetric() {
+        metrics.poolSize.set(this.pool.length + this.currentActive);
     }
 }

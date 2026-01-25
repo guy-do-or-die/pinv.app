@@ -1,7 +1,7 @@
 import { DstackClient } from "@phala/dstack-sdk";
 import { decrypt as eciesDecrypt } from "eciesjs";
 import { config } from "./config.js";
-import { logger } from "./telemetry.js";
+import { logger } from "./logger.js";
 
 // We use a fixed key ID for the application master key
 const APP_KEY_ID = "pinv-master-key";

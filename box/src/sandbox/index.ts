@@ -1,6 +1,6 @@
 import { IsolatePool } from "../pool.js";
 import { AppError, ErrorCodes } from "../errors.js";
-import { metrics } from "../telemetry.js";
+import { metrics } from "../metrics.js";
 import type { ExtendedWrapper } from "./types.js";
 import { runScriptWithTimeout } from "./runtime.js";
 
@@ -37,7 +37,7 @@ export class Sandbox {
 
             // 3. Success stats
             metrics.executionDuration.observe((Date.now() - start) / 1000);
-            metrics.executionsTotal.inc({ status: "success" });
+            metrics.executionsTotal.inc({ status: "success", code: "OK" });
 
             const meta = {
                 durationMs: Date.now() - start,
@@ -56,7 +56,7 @@ export class Sandbox {
         } catch (e: any) {
             console.error("[Sandbox] Execution Fatal Error:", e);
             metrics.executionDuration.observe((Date.now() - start) / 1000);
-            metrics.executionsTotal.inc({ status: "error" });
+            metrics.executionsTotal.inc({ status: "error", code: e.code || "ERR_UNKNOWN" });
 
             // Determine if fatal (timeout/poison)
             let poisonReason = "error_execution";

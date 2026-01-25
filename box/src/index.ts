@@ -5,7 +5,8 @@ import { Sandbox } from "./sandbox";
 import { IsolatePool } from "./pool.js";
 import { authMiddleware } from "./auth.js";
 import { config } from "./config.js";
-import { logger, register } from "./telemetry.js";
+import { logger } from "./logger.js";
+import { register } from "./metrics.js";
 import { AppError, ErrorCodes } from "./errors.js";
 
 const app = new Hono();
@@ -138,7 +139,7 @@ app.post("/execute", authMiddleware, async (c) => {
                 finalScript = await decrypt(encryptedCode);
                 logger.debug("[Box] Decrypted Code successfully.");
             } catch (e) {
-                logger.error("[Box] Decryption Failed:", e);
+                logger.error({ err: e }, "[Box] Decryption Failed");
                 throw new AppError(ErrorCodes.ERR_DECRYPT_FAIL, "Code Decryption Failed", 400);
             }
         }

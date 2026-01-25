@@ -1,12 +1,4 @@
-import pino from "pino";
 import client from "prom-client";
-import { config } from "./config.js";
-
-// Logger
-export const logger = pino({
-    level: config.logLevel,
-    transport: config.logLevel === 'debug' ? { target: 'pino-pretty' } : undefined
-});
 
 // Metrics Registry
 export const register = new client.Registry();
@@ -19,7 +11,7 @@ export const metrics = {
     executionsTotal: new client.Counter({
         name: 'box_executions_total',
         help: 'Total number of script executions',
-        labelNames: ['status'],
+        labelNames: ['status', 'code'],
         registers: [register]
     }),
     executionDuration: new client.Histogram({
