@@ -7,6 +7,7 @@ export interface Widget {
   signature?: string;
   timestamp?: number;
   litActionCid?: string;
+  encryptedParams?: string | any;
 }
 
 export interface Pin {
@@ -25,5 +26,6 @@ export interface Pin {
     signature?: string;
     timestamp?: number;
     litActionCid?: string;
+    encryptedParams?: string | any;
   };
 }

@@ -3,10 +3,11 @@
   "private": true,
   "scripts": {
     "generate": "wagmi generate",
-    "dev:web": "bun run --filter pinv-web dev",
-    "dev:og": "bun run --filter pinv-og dev",
+    "dev:web": "cd web && bun run dev",
+    "dev:og": "cd og && bun run dev",
     "test:web": "bun run --filter pinv-web test",
     "test:og": "bun run --filter pinv-og test",
+    "dev:box": "cd box && PORT=5555 bun run dev",
     "test:all": "bun run --filter '*' test",
     "build:all": "bun run --filter '*' build",
     "deploy": "cd contracts && ./deploy.sh",
@@ -16,7 +17,8 @@
   },
   "workspaces": [
     "web",
-    "og"
+    "og",
+    "box"
   ],
   "dependencies": {
     "viem": "^2.40.3",
@@ -31,8 +33,5 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tr46": "^1.0.1"
-  },
-  "patchedDependencies": {
-    "@lit-protocol/constants@7.4.0": "patches/@lit-protocol%2Fconstants@7.4.0.patch"
   }
 }

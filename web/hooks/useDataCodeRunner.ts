@@ -9,7 +9,7 @@ export interface LogEntry {
 }
 
 interface UseDataCodeRunnerReturn {
-    run: (dataCode: string, params: Record<string, unknown>, uiCode?: string) => Promise<Record<string, unknown> | null>;
+    run: (dataCode: string, params: Record<string, unknown>, uiCode?: string, encryptedParams?: string | null) => Promise<Record<string, unknown> | null>;
     isRunning: boolean;
     result: Record<string, unknown> | null;
     image: string | null;
@@ -31,7 +31,8 @@ export function useDataCodeRunner(): UseDataCodeRunnerReturn {
     const run = useCallback(async (
         dataCode: string,
         params: Record<string, unknown>,
-        uiCode?: string
+        uiCode?: string,
+        encryptedParams?: string | null // New
     ): Promise<Record<string, unknown> | null> => {
         // Allow empty dataCode if uiCode is present (pure UI preview)
         if (!dataCode.trim() && !uiCode?.trim()) {
@@ -51,7 +52,7 @@ export function useDataCodeRunner(): UseDataCodeRunnerReturn {
             const response = await fetch('/og/preview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dataCode, params, uiCode })
+                body: JSON.stringify({ dataCode, params, uiCode, encryptedParams })
             });
 
             if (!response.ok) {

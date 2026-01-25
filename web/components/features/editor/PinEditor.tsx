@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, useWalletClient } from "wagmi";
 import { Pin } from "@/types";
 import { useWidgetGeneration, useDataCodeRunner, usePreviewRenderer } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { encodeBundle } from "@/lib/bundle-utils";
 import { EditableText } from "@/components/ui/editable-text";
 import { TagsInput } from "@/components/ui/tags-input";
+import { unwrapKeyForOwner, decryptData, EncryptedEnvelope } from "@/lib/crypto";
 
 import { EditorPrompt } from "./partials/EditorPrompt";
 import { EditorConfig } from "./partials/EditorConfig";
@@ -24,7 +25,7 @@ import {
 import PinDisplayCard from "../viewer/PinDisplayCard";
 
 import { Button } from "@/components/ui/button";
-import { Play, Settings2, Wand2, Code2, TerminalSquare, ChevronLeft, Loader2 } from "lucide-react";
+import { Play, Settings2, Wand2, Code2, TerminalSquare, ChevronLeft, Loader2, Lock, Unlock } from "lucide-react";
 import { notify } from "@/components/shared/Notifications";
 
 interface PinEditorProps {
@@ -61,7 +62,8 @@ const SECTION_CONFIG = [
  * Uses extracted hooks for logic and partial components for UI.
  */
 export default function PinEditor({ pinId, pin }: PinEditorProps) {
-    const { isConnected } = useAccount();
+    const { isConnected, address } = useAccount();
+    const { data: walletClient } = useWalletClient();
     const router = useRouter();
 
     // Local state for user inputs
@@ -76,7 +78,13 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
     const [uiCode, setUICode] = useState(initialWidget?.uiCode || "");
     const [parameters, setParameters] = useState<any[]>(initialWidget?.parameters || []);
     const [previewData, setPreviewData] = useState<Record<string, unknown>>(initialWidget?.previewData || {});
+    // Store original encrypted params from manifest (Envelope)
+    const [encryptedParams, setEncryptedParams] = useState<any>(initialWidget?.encryptedParams || null);
     const [cachedImageUrl, setCachedImageUrl] = useState<string | null>(null);
+
+    // Unlock State
+    const [sessionKey, setSessionKey] = useState<CryptoKey | null>(null);
+    const [isUnlocking, setIsUnlocking] = useState(false);
 
     const [hasGenerated, setHasGenerated] = useState(!!(initialWidget && initialWidget.uiCode));
 
@@ -255,7 +263,7 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
 
         // 1. Run Unified Preview (Logs + Image) via /og/preview
         // This returns the image Base64 immediately alongside logs
-        await runDataCode(dataCode, userParams, uiCode)
+        await runDataCode(dataCode, userParams, uiCode, encryptedParams)
             .catch(err => console.warn('[PinEditor] Preview execution failed (non-fatal):', err));
 
         // 2. Mark as Previewed (Draft)
@@ -304,10 +312,12 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
             case "config":
                 return (
                     <EditorConfig
+                        encryptedParams={encryptedParams}
                         parameters={parameters}
                         values={previewData as Record<string, any>}
                         onChange={(values) => setPreviewData(values)}
                         onParametersChange={setParameters}
+                        sessionKey={sessionKey}
                     />
                 );
             case "code":
@@ -421,6 +431,79 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
                             </div>
                         </div>
                     </PinDisplayCard>
+
+                    {/* Unlock Banner (Hoisted) */}
+                    {(() => {
+                        const hasOwnerEnvelope = encryptedParams && typeof encryptedParams === 'string' && encryptedParams.startsWith('{') && encryptedParams.includes('"owner"');
+                        const isLocked = !sessionKey && (
+                            // Check Params
+                            Object.values(previewData).some(v => typeof v === 'string' && (v.startsWith('$$ENC:') || v === '$$ENC:')) ||
+                            // Check Code
+                            (dataCode.startsWith('$$ENC:') || dataCode === '$$ENC:')
+                        );
+
+                        if (hasOwnerEnvelope && isLocked && !sessionKey) {
+                            return (
+                                <div className="flex items-center justify-between p-3 mb-4 bg-muted/40 rounded-lg border border-dashed">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Lock className="w-4 h-4" />
+                                        <span>This Pin contains encrypted secrets.</span>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                            if (!walletClient || !address || !hasOwnerEnvelope) return;
+                                            setIsUnlocking(true);
+                                            try {
+                                                const envelope = JSON.parse(encryptedParams as string) as EncryptedEnvelope;
+                                                const msg = `Authorize PinV Secret Access`;
+                                                const sig = await walletClient.signMessage({ account: address, message: msg });
+                                                const key = await unwrapKeyForOwner(envelope.capsules.owner!, sig);
+                                                setSessionKey(key);
+
+                                                // Decrypt all known fields to improve UX immediately
+                                                let count = 0;
+                                                const newPreviewData = { ...previewData };
+                                                let newDataCode = dataCode;
+
+                                                // Params
+                                                if (envelope.data) {
+                                                    for (const [k, encData] of Object.entries(envelope.data)) {
+                                                        if (encData && encData.ciphertext && encData.iv) {
+                                                            newPreviewData[k] = await decryptData(encData.ciphertext, encData.iv, key);
+                                                            count++;
+                                                        }
+                                                    }
+                                                }
+                                                // Code
+                                                if (envelope.code) {
+                                                    newDataCode = await decryptData(envelope.code.ciphertext, envelope.code.iv, key);
+                                                    count++;
+                                                }
+
+                                                setPreviewData(newPreviewData);
+                                                setDataCode(newDataCode);
+                                                notify(`Unlocked ${count} secrets`, 'success');
+
+                                            } catch (e) {
+                                                console.error("Unlock failed", e);
+                                                notify("Failed to unlock secrets", "error");
+                                            } finally {
+                                                setIsUnlocking(false);
+                                            }
+                                        }}
+                                        disabled={isUnlocking}
+                                        className="gap-2"
+                                    >
+                                        {isUnlocking ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlock className="w-3 h-3" />}
+                                        Unlock to Edit
+                                    </Button>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
 
                     <Accordion
                         type="single"

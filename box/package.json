@@ -1,0 +1,31 @@
+{
+  "name": "pinv-box",
+  "version": "0.0.6",
+  "type": "module",
+  "scripts": {
+    "dev": "node --no-node-snapshot --import tsx src/index.ts",
+    "start": "node --no-node-snapshot --import tsx src/index.ts",
+    "docker:build": "cd .. && docker build -f box/Dockerfile -t pinv-box:latest .",
+    "docker:stop": "docker rm -f box_manual || true",
+    "docker:run": "npm run docker:stop && docker run -d -p 5555:5555 --env PORT=5555 --env INTERNAL_AUTH_KEY=dev-secret-key-123 --name box_manual pinv-box:latest",
+    "docker:logs": "docker logs -f box_manual",
+    "docker:tag": "docker tag pinv-box:latest guydoordie/pinv-box:latest && docker tag pinv-box:latest guydoordie/pinv-box:$npm_package_version",
+    "docker:push": "docker push guydoordie/pinv-box:latest && docker push guydoordie/pinv-box:$npm_package_version",
+    "build": "bun build src/index.ts --compile --outfile dist/server",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@phala/dstack-sdk": "^0.5.7",
+    "eciesjs": "^0.4.6",
+    "isolated-vm": "^5.0.0",
+    "hono": "^4.0.0",
+    "@hono/node-server": "^1.11.0",
+    "pino": "^10.3.0",
+    "prom-client": "^15.1.3",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0"
+  }
+}

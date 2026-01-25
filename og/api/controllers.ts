@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { executeLitAction } from '../infra/executor';
+import { executeBoxAction } from '../infra/box';
 import { renderImageInWorker } from '../infra/renderer';
 import { generateOgImage } from '../services/generator';
 import { resolveContext } from '../services/auth';
@@ -9,15 +9,32 @@ import { logToFile } from '../utils/logger';
 
 import { OG_WIDTH, OG_HEIGHT } from '../utils/constants';
 
+console.log('[DEBUG] Preview Request Recv');
 export async function previewHandler(req: FastifyRequest, reply: FastifyReply) {
     try {
-        const { dataCode, uiCode, params, litActionCid } = req.body as { dataCode?: string, uiCode?: string, params?: any, litActionCid?: string };
+        const { dataCode, uiCode, params, encryptedCode, encryptedParams, publicParams } = req.body as {
+            dataCode?: string,
+            uiCode?: string,
+            params?: any,
+            encryptedCode?: string,
+            encryptedParams?: string,
+            publicParams?: any
+        };
 
         let result = {};
         let logs: string[] = [];
 
-        if (dataCode || litActionCid) {
-            const execRes = await executeLitAction(dataCode, litActionCid, params || {});
+        // Box Execution Logic
+        // We support both:
+        // 1. Direct Script (dataCode -> script) for Dev/Simple
+        // 2. Encrypted Code (encryptedCode -> encryptedCode) for Secure
+        if (dataCode || encryptedCode) {
+            const execRes = await executeBoxAction({
+                code: dataCode,
+                encryptedCode,
+                encryptedParams,
+                publicParams: publicParams || params || {}
+            });
             result = execRes.result || {};
             logs = execRes.logs || [];
         } else {

@@ -4,6 +4,7 @@ import localFont from "next/font/local"
 
 import Providers from "@/components/shared/Providers"
 import Notifications from "@/components/shared/Notifications"
+import Polyfills from "@/components/shared/Polyfills"
 
 import { defaultMetadata } from "@/lib/metadata"
 
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} antialiased`}>
         <Providers>
+          <Polyfills />
           <Notifications />
           {children}
         </Providers>

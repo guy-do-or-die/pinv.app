@@ -1,5 +1,5 @@
 import { getPin } from '../infra/pin';
-import { executeLitAction } from '../infra/executor';
+import { executeBoxAction } from '../infra/box';
 import { renderImageInWorker } from '../infra/renderer';
 import { redis, memoryCache } from '../infra/cache';
 import { CACHE_TTL, REVALIDATE_TTL, OG_WIDTH, OG_HEIGHT, MEMORY_CACHE_TTL } from '../utils/constants';
@@ -54,13 +54,20 @@ export async function generateOgImage(pinId: number, queryParams: Record<string,
 
         if (authorizedBundle && authorizedBundle.params) {
             const dataCode = pin.widget?.dataCode;
+            const encryptedCode = pin.widget?.encryptedCode;
+            const encryptedParams = pin.widget?.encryptedParams;
 
             // CRITICAL FIX: Merge Defaults + Bundle parameters
             // This ensures hidden secrets (like API keys) defined in 'previewData' but not sent by the client are preserved.
             const paramsToRun = { ...defaultParams, ...authorizedBundle.params, ...overrides };
 
-            if (dataCode || pin.widget?.litActionCid) {
-                const { result } = await executeLitAction(dataCode, pin.widget?.litActionCid, paramsToRun);
+            if (dataCode || encryptedCode || encryptedParams) {
+                const { result } = await executeBoxAction({
+                    code: dataCode,
+                    encryptedCode: encryptedCode,
+                    encryptedParams: encryptedParams, // Pass envelope
+                    publicParams: paramsToRun
+                });
                 if (result) baseProps = { ...baseProps, ...result };
             } else {
                 baseProps = { ...baseProps, ...paramsToRun };
@@ -68,13 +75,21 @@ export async function generateOgImage(pinId: number, queryParams: Record<string,
         }
     } else {
         const dataCode = pin.widget?.dataCode;
+        const encryptedCode = pin.widget?.encryptedCode;
+        const encryptedParams = pin.widget?.encryptedParams;
+
         const storedParams = pin.widget?.previewData || {};
         const paramsToRun = { ...storedParams, ...overrides };
 
-        if (dataCode || pin.widget?.litActionCid) {
+        if (dataCode || encryptedCode || encryptedParams) {
             const tExecStart = performance.now();
-            const { result } = await executeLitAction(dataCode, pin.widget?.litActionCid, paramsToRun);
-            console.log(`[Perf] Lit Action: ${(performance.now() - tExecStart).toFixed(2)}ms`);
+            const { result } = await executeBoxAction({
+                code: dataCode,
+                encryptedCode: encryptedCode,
+                encryptedParams: encryptedParams, // Pass envelope
+                publicParams: paramsToRun
+            });
+            console.log(`[Perf] Box Action: ${(performance.now() - tExecStart).toFixed(2)}ms`);
             if (result) baseProps = { ...baseProps, ...result };
         } else {
             baseProps = { ...baseProps, ...paramsToRun };

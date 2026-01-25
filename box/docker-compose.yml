@@ -1,0 +1,18 @@
+services:
+  pinv-box:
+    image: guydoordie/pinv-box:0.0.6
+    container_name: pinv-box
+    restart: always
+    ports:
+      - "8080:5555"
+    volumes:
+      - /var/run/dstack.sock:/var/run/dstack.sock
+    environment:
+      - PORT=5555
+      - INTERNAL_AUTH_KEY=${INTERNAL_AUTH_KEY}
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://127.0.0.1:5555/healthz || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

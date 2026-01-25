@@ -374,6 +374,7 @@ export default function PinViewer({ pin, pinId, initialParams }: PinViewerProps)
                             )}
                             <div className={cn((!isOwner && !isCreator) && "pointer-events-none opacity-50")}>
                                 <PinParams
+                                    encryptedParams={activePin.widget?.encryptedParams}
                                     parameters={visibleParameters}
                                     values={values}
                                     onChange={setValues}
