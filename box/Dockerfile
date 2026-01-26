@@ -5,7 +5,7 @@ FROM node:24.13.0-alpine3.23 AS base
 WORKDIR /app
 
 # Install build dependencies (python3, make, g++) for isolated-vm
-RUN apt-get update && apt-get install -y python3 python-is-python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache python3 make g++ && rm -rf /var/cache/apk/*
 
 # ==========================================
 # 2. Dependency Installation
@@ -53,7 +53,7 @@ COPY --from=prerelease /app/lib lib
 WORKDIR /app
 
 # Security: Run as non-root
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN addgroup -S appuser && adduser -S -G appuser appuser
 USER appuser
 
 EXPOSE 5555

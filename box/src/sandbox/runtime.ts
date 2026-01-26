@@ -72,8 +72,12 @@ export async function runScriptWithTimeout(wrapper: ExtendedWrapper, script: str
         // 7. Compile & Run
         // Note: We compile in the *isolate*, but run in the *context*.
         // Script lifecycle is tied to isolate, but here we compile per run for simplicity/isolation
-        // (Optimization: Cache compiled scripts by hash? Out of scope for now)
-        const scriptHandle = await wrapper.isolate.compileScript(finalScript);
+        let scriptHandle;
+        try {
+            scriptHandle = await wrapper.isolate.compileScript(finalScript);
+        } catch (e: any) {
+            throw new AppError(ErrorCodes.ERR_SCRIPT_FAIL, e.message || "Script Compilation Failed (Syntax Error)", 400, { stack: e.stack });
+        }
 
         // Execution Race
         const executionPromise = scriptHandle.run(context, { promise: true });
@@ -99,7 +103,15 @@ export async function runScriptWithTimeout(wrapper: ExtendedWrapper, script: str
 
                 throw new AppError(ErrorCodes.ERR_SANDBOX_TIMEOUT, "Execution Timed Out", 504);
             }
-            throw err;
+
+            // Check if it's already an AppError (e.g. Timeout, Fetch Limit)
+            if (err instanceof AppError) throw err;
+
+            // Otherwise, it's a User Script Error (Syntax, Runtime Exception)
+            // We wrap it to distinguishable code so we don't poison the isolate
+            throw new AppError(ErrorCodes.ERR_SCRIPT_FAIL, err.message || "Script Execution Failed", 400, {
+                stack: err.stack
+            });
         }
 
         return await marshalResult(resultRef);

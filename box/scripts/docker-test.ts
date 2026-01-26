@@ -61,7 +61,7 @@ try {
     // 3. Queue Full Rejection & Fail Closed Checks
     await runTest("Queue Full / Load Test", async () => {
         // setTimeout is removed, so we use busy loop to simulate work/duration
-        const sleepScript = `async function main() { const start = Date.now(); while(Date.now() - start < 1500); return "slept"; }`;
+        const sleepScript = `async function main() { const start = Date.now(); while(Date.now() - start < 5000); return "slept"; }`;
 
         // We'll fire off enough requests to fill pool (2) + queue (2) + overflow (1)
         // If IVM is disabled, they will all 503 immediately.
@@ -224,6 +224,23 @@ try {
         }
 
         throw new Error(`Unexpected result: ${JSON.stringify(json.result)}`);
+    });
+
+    // 11. Script Failure Test (Syntax Error)
+    await runTest("Script Failure (ERR_SCRIPT_FAIL)", async () => {
+        const res = await authenticatedFetch("/execute", {
+            method: "POST",
+            body: JSON.stringify({ code: `function main() { return "missing_quote; }` }) // Syntax error
+        });
+
+        if (res.status === 503) return; // Skip if disabled
+
+        if (res.status !== 400) throw new Error(`Expected 400 for syntax error, got ${res.status}`);
+        const json = await res.json();
+
+        if (json.error?.code !== 'ERR_SCRIPT_FAIL') {
+            throw new Error(`Expected ERR_SCRIPT_FAIL, got ${json.error?.code}`);
+        }
     });
 
 } finally {
