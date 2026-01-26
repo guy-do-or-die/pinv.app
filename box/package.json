@@ -1,6 +1,6 @@
 {
   "name": "pinv-box",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "type": "module",
   "scripts": {
     "dev": "node --no-node-snapshot --import tsx src/index.ts",
@@ -13,7 +13,8 @@
     "docker:push": "docker push guydoordie/pinv-box:latest && docker push guydoordie/pinv-box:$npm_package_version",
     "build": "bun build src/index.ts --compile --outfile dist/server",
     "test": "bun test",
-    "verify": "BOX_URL=http://localhost:5555 bun scripts/verify.ts"
+    "verify": "BOX_URL=http://localhost:5555 bun scripts/verify.ts",
+    "postversion": "sed -i \"s/image: guydoordie\\/pinv-box:[0-9.]*/image: guydoordie\\/pinv-box:$npm_package_version/\" docker-compose.yml && git add docker-compose.yml"
   },
   "dependencies": {
     "@phala/dstack-sdk": "^0.5.7",
