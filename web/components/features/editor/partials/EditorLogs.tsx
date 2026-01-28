@@ -53,7 +53,7 @@ export function EditorLogs({ logs, lastRunTime }: EditorLogsProps) {
                         No output to display. Run code to generate logs.
                     </div>
                 ) : (
-                    <div className="flex-1 overflow-y-auto p-4 pt-10 font-mono text-xs md:text-sm bg-muted/50 text-foreground select-text rounded-b-md">
+                    <div className="flex-1 overflow-y-auto p-4 font-mono text-xs md:text-sm bg-muted/50 text-foreground select-text rounded-b-md">
                         {logs.map((log, i) => (
                             <div
                                 key={i}
