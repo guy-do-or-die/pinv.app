@@ -45,17 +45,17 @@ async function main() {
 
         // 2. Build Candidate (tagged as latest temporarily)
         console.log("\n📦 Building Candidate Image...");
-        await run("npm", ["run", "docker:build"]);
+        await run("bun", ["run", "docker:build"]);
 
         // 3. Test Candidate
         console.log("\n🧪 verifying Candidate...");
-        await run("npm", ["run", "docker:run"]);
+        await run("bun", ["run", "docker:run"]);
 
         console.log("   (Waiting for container to init...)");
         await new Promise(r => setTimeout(r, 5000));
 
         try {
-            await run("npm", ["run", "docker:test"]);
+            await run("bun", ["run", "docker:test"]);
         } catch (e) {
             console.error("\n❌ Verification FAILED. Aborting release.");
             console.error("   (Version has NOT been bumped.)");
@@ -64,12 +64,21 @@ async function main() {
 
         // 4. Bump Version
         console.log("\n✅ Verification Passed. Bumping Version...");
-        await run("npm", ["version", "patch"]);
 
-        // Reload package.json to get the new version reliably
-        const pkgUpdated = JSON.parse(readFileSync("package.json", "utf-8"));
-        const newVersion = pkgUpdated.version;
+        const currentVersion = pkg.version;
+        const [major, minor, patch] = currentVersion.split(".").map(Number);
+        const newVersion = `${major}.${minor}.${patch + 1}`;
+
+        pkg.version = newVersion;
+        // writes result to package.json
+        await run("bun", ["run", "node", "-e", `const fs = require('fs'); const pkg = ${JSON.stringify(pkg, null, 2)}; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\\n');`]);
+
         console.log(`   New Version: ${newVersion}`);
+
+        // Commit and Tag
+        await run("git", ["add", "package.json"]);
+        await run("git", ["commit", "-m", `chore(release): v${newVersion}`]);
+        await run("git", ["tag", `v${newVersion}`]);
 
         // 5. Retag Image
         console.log("\n🏷️  Tagging Image...");
