@@ -70,7 +70,7 @@ const main = async (jsParams) => {
             return result;
         }
     } catch (e) {
-        console.error("Lit Action Error:", e);
+        console.error("Code Error:", e);
         result.status = "Fetch Failed";
         result.is_error = true;
         return result;

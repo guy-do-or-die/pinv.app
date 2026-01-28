@@ -255,7 +255,7 @@ export default function PinEditor({ pinId, pin }: PinEditorProps) {
         }
     };
 
-    // Handle Lit Action execution & Preview Update
+    // Handle Code execution & Preview Update
     const handleRunDataCode = async (userParams: any = previewData) => {
         // Build user params from current parameter values
         // Note: parameters contains metadata, previewData contains values

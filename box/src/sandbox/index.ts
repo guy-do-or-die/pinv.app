@@ -8,6 +8,7 @@ export interface ExecutionResult {
     ok: boolean;
     result?: any;
     error?: any;
+    logs: string[];
     meta: {
         durationMs: number;
         fetchCount: number;
@@ -47,11 +48,13 @@ export class Sandbox {
                 logBytes: wrapper.job?.logBytes || 0
             };
 
+            const logs = wrapper.job?.logs || [];
+
             // 4. Release (Clean return)
             await this.pool.release(wrapper);
             wrapper = null;
 
-            return { ok: true, result, meta };
+            return { ok: true, result, logs, meta };
 
         } catch (e: any) {
             console.error("[Sandbox] Execution Fatal Error:", e);

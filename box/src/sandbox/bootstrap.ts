@@ -1,9 +1,15 @@
 export const BOOTSTRAP_CODE = `
 const makeSafeLogger = (prefix = "") => (...args) => {
     const safeArgs = args.map(arg => {
+        if (arg instanceof Error) {
+            return arg.stack || arg.toString();
+        }
         if (typeof arg === 'object' && arg !== null) {
             try {
-                return JSON.stringify(arg, (k, v) => typeof v === 'function' ? '[Function]' : v);
+                return JSON.stringify(arg, (k, v) => {
+                    if (v instanceof Error) return v.stack || v.toString();
+                    return typeof v === 'function' ? '[Function]' : v;
+                });
             } catch (e) {
                 return String(arg); 
             }

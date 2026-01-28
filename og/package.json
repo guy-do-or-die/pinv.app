@@ -5,7 +5,7 @@
     "type": "module",
     "main": "dist/api/server.js",
     "scripts": {
-        "dev": "dotenvx run -f ../.env -f ../.env.local -- bun --watch api/server.ts",
+        "dev": "dotenvx run -f .env.local -f ../.env.local -f ../.env -- bun --watch api/server.ts",
         "build": "bun build ./api/server.ts ./worker.ts --outdir ./dist --target node",
         "start": "bun dist/server.js",
         "test": "vitest run tests/unit"

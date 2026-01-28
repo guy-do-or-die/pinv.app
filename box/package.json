@@ -1,10 +1,10 @@
 {
   "name": "pinv-box",
-  "version": "0.0.11",
+  "version": "0.0.14",
   "type": "module",
   "scripts": {
     "test": "~/.bun/bin/bun test",
-    "dev": "node --no-node-snapshot --import tsx src/index.ts",
+    "dev": "node --no-node-snapshot --env-file=../.env --env-file=.env.local --import tsx src/index.ts",
     "start": "node --no-node-snapshot --import tsx src/index.ts",
     "docker:build": "cd .. && docker build -f box/Dockerfile -t $npm_package_config_image_name:latest .",
     "docker:stop": "docker rm -f box_manual || true",
@@ -15,7 +15,7 @@
     "docker:test": "BOX_URL=http://localhost:5555 ~/.bun/bin/bun scripts/docker-test.ts",
     "postversion": "sed -i \"s|image: .*|image: $npm_package_config_image_name:$npm_package_version|\" docker-compose.yml && git add docker-compose.yml",
     "deploy": "npx phala deploy -c docker-compose.yml",
-    "release": "npm version patch && npm run docker:build && npm run docker:run && sleep 5 && npm run docker:test && npm run docker:tag && npm run docker:push && npm run deploy"
+    "release": "~/.bun/bin/bun scripts/release.ts"
   },
   "config": {
     "image_name": "guydoordie/pinv-box"

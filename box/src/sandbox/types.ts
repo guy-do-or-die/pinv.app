@@ -6,6 +6,7 @@ export interface JobState {
     fetchBytes: number;
     logBytes: number;
     logsTruncated: boolean;
+    logs: string[];
     deadlineMs: number;
 }
 

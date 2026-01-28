@@ -26,7 +26,7 @@ export async function executeBoxAction(
         console.warn("[BoxExecutor] No INTERNAL_AUTH_KEY configured in OG. Box request likely to fail if Box expects auth.");
     }
 
-    // 2. Prepare Params (Normalization similar to Lit)
+    // 2. Prepare Params
     // We only normalize publicParams here. Encrypted params are opaque strings.
     const jsParams: Record<string, any> = {};
     if (payload.publicParams) {
@@ -67,15 +67,17 @@ export async function executeBoxAction(
         }
 
         const data = await response.json();
+        console.log('[BoxExecutor] Raw Data:', JSON.stringify(data));
 
         // 4. Parse Result
         // Box returns { status: "executed", result: ... }
         // We expect result to be the return value of the script.
         const result = data.result;
 
-        // Box currently doesn't capture console.log (it prints to stdout).
-        // Future optimization: Box should capture logs and return them.
-        const logs: string[] = ["[Box] Execution Successful"];
+        const logs: string[] = Array.isArray(data.logs) ? data.logs : ["[Box] Execution Successful (No logs returned)"];
+
+        console.log('[BoxExecutor] Logs received:', logs.length);
+        console.log('[BoxExecutor] First log:', logs[0]);
 
         console.log('[BoxExecutor] Result:', result);
 

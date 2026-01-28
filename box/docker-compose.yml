@@ -1,6 +1,6 @@
 services:
   pinv-box:
-    image: guydoordie/pinv-box:0.0.11
+    image: guydoordie/pinv-box:0.0.14
     container_name: pinv-box
     restart: always
     ports:

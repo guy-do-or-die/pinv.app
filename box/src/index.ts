@@ -187,6 +187,7 @@ app.post("/execute", authMiddleware, async (c) => {
         return c.json({
             ok: true,
             result: result.result ?? null,
+            logs: result.logs,
             meta: result.meta
         });
 

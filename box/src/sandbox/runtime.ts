@@ -23,6 +23,7 @@ export async function runScriptWithTimeout(wrapper: ExtendedWrapper, script: str
             fetchBytes: 0,
             logBytes: 0,
             logsTruncated: false,
+            logs: [],
             deadlineMs: Date.now() + config.execTimeoutMs
         };
 
@@ -122,6 +123,5 @@ export async function runScriptWithTimeout(wrapper: ExtendedWrapper, script: str
             context.release();
         } catch (e) { /* ignore */ }
         wrapper.runtime = undefined; // Clear runtime ref from wrapper
-        wrapper.job = undefined;     // Clear job state
     }
 }

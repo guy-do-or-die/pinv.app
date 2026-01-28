@@ -46,7 +46,7 @@ test.describe.serial('Real World Scenario (NY Counter)', () => {
             args: [
                 account.address,
                 "NY Counter",
-                "Live from Lit",
+                "Live from",
                 MINT_HASH,
                 "0x"
             ],

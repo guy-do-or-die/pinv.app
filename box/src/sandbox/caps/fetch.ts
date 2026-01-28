@@ -4,7 +4,6 @@ import { validateUrl } from "../../utils.js";
 import ivm from "../ivm.js";
 
 export function createHostFetch(wrapper: ExtendedWrapper) {
-    // Accepts a single JSON string argument 
     return new ivm.Reference(async (argsJson: any) => {
         if (!wrapper.job) return JSON.stringify({ error: "No active job state" });
 
@@ -64,6 +63,18 @@ export function createHostFetch(wrapper: ExtendedWrapper) {
                             return JSON.stringify({ error: "Response size exceeds limit" });
                         }
 
+                        // Check Job State (Race Condition Safety)
+                        if (!wrapper.job) {
+                            controller.abort();
+                            return;
+                        }
+
+                        // Check Job State (Safe access)
+                        if (!wrapper.job) {
+                            controller.abort();
+                            return JSON.stringify({ error: "Job Cancelled" });
+                        }
+
                         // Check Total Budget
                         if ((wrapper.job.fetchBytes + value.length) > config.maxFetchBytesTotal) {
                             controller.abort();
@@ -97,6 +108,7 @@ export function createHostFetch(wrapper: ExtendedWrapper) {
                 clearTimeout(timeoutId);
             }
         } catch (e: any) {
+            console.error("[HostFetch DEBUG] Failed:", urlArg, e);
             return JSON.stringify({ error: e.message || "Fetch failed" });
         }
     });

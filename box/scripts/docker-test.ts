@@ -173,9 +173,16 @@ try {
             method: "POST",
             body: JSON.stringify({ code: script })
         });
+
         if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+
         const json = await res.json();
         if (!json.ok) throw new Error("Execution failed despite console.error");
+
+        if (!json.logs || !Array.isArray(json.logs)) throw new Error("Logs array missing");
+
+        const hasErrorLog = json.logs.some((l: string) => l.includes("This is an error"));
+        if (!hasErrorLog) throw new Error("Expected log message not found");
     });
 
     // 10. User Reproduction (Exact Code)
