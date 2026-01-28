@@ -33,6 +33,8 @@ async function main() {
         const imageName = pkg.config?.image_name;
         if (!imageName) throw new Error("config.image_name missing in package.json");
 
+        const BUN = process.env.HOME + "/.bun/bin/bun";
+
         console.log("🚀 Starting Atomic Release Workflow...");
 
         // 1. Ensure Git is Clean
@@ -45,17 +47,17 @@ async function main() {
 
         // 2. Build Candidate (tagged as latest temporarily)
         console.log("\n📦 Building Candidate Image...");
-        await run("bun", ["run", "docker:build"]);
+        await run(BUN, ["run", "docker:build"]);
 
         // 3. Test Candidate
         console.log("\n🧪 verifying Candidate...");
-        await run("bun", ["run", "docker:run"]);
+        await run(BUN, ["run", "docker:run"]);
 
         console.log("   (Waiting for container to init...)");
         await new Promise(r => setTimeout(r, 5000));
 
         try {
-            await run("bun", ["run", "docker:test"]);
+            await run(BUN, ["run", "docker:test"]);
         } catch (e) {
             console.error("\n❌ Verification FAILED. Aborting release.");
             console.error("   (Version has NOT been bumped.)");
