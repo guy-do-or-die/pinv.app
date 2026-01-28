@@ -26,7 +26,7 @@ export async function executeBoxAction(
         console.warn("[BoxExecutor] No INTERNAL_AUTH_KEY configured in OG. Box request likely to fail if Box expects auth.");
     }
 
-    // 2. Prepare Params (Normalization similar to Lit)
+    // 2. Prepare Params
     // We only normalize publicParams here. Encrypted params are opaque strings.
     const jsParams: Record<string, any> = {};
     if (payload.publicParams) {

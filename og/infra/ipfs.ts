@@ -32,25 +32,6 @@ export async function fetchIpfsJson(cid: string): Promise<any> {
             userConfig: {}
         };
     }
-    // Standard `fetchIpfsJson` returns JSON. 
-    // If the OG engine uses `fetchIpfsJson` for the CODE (which is text), it might fail if it tries to parse JSON?
-    // Let's check `og/infra/executor.ts` or `generator.ts` to see how it fetches code.
-    // ... Checked: `executeLitAction` logic usually takes `dataCode`.
-    // If `litActionCid` is provided in manifest, generator uses that?
-
-    if (cid === "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJg460aa8") {
-        console.log("[MOCK] Returning Fake code");
-        // Wait, fetchIpfsJson implies JSON return.
-        // If `generator.ts` calls this for code, it expects text?
-        // Let's assume for now it handles it or we return a wrapper.
-        // Actually, typically code is just text.
-        // For now, let's return it as an object property if that's what's expected or verify usage.
-        // But since this tool returns `any`...
-        // If generic fetch, it parses JSON.
-        // If the file is NOT Json, `res.json()` fails.
-        // So we should verify if `generator.ts` uses `fetchIpfsJson` or something else for code.
-        return { code: "console.log('Mocked code');" };
-    }
     // ------------------------
 
     // 2. Coalescing: Check pending fetches
