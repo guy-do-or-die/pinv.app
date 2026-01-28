@@ -6,7 +6,16 @@ import { readFileSync } from "fs";
 function run(cmd: string, args: string[], cwd: string = process.cwd(), env: Record<string, string> = {}): Promise<void> {
     return new Promise((resolve, reject) => {
         console.log(`> ${cmd} ${args.join(" ")}`);
-        const proc = spawn(cmd, args, { stdio: "inherit", cwd, env: { ...process.env, ...env } });
+
+        // Ensure Bun is in PATH
+        const BUN_BIN = process.env.HOME + "/.bun/bin";
+        const PATH = BUN_BIN + ":" + (process.env.PATH || "");
+
+        const proc = spawn(cmd, args, {
+            stdio: "inherit",
+            cwd,
+            env: { ...process.env, ...env, PATH }
+        });
         proc.on("close", (code) => {
             if (code === 0) resolve();
             else reject(new Error(`Command failed with code ${code}`));
